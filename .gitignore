@@ -1,0 +1,8 @@
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+dist-package/
+*.lumina-workshop
+parity_zoom.png
+.DS_Store

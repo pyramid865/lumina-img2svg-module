@@ -1,3 +1,79 @@
-# lumina-img2svg-module
+# community.img2svg — Lumina Workshop 模块
 
-Initial commit placeholder; full source will be pushed next.
+把桌面版「图片转 SVG」**v7.6.0** 的默认画质链路封装成 Workshop 后端模块
+（manifest v2 / Workshop API 1.1.0）。
+
+**当前状态：本地已完成并通过全部检查，尚未 Fork、未提 PR、未发布。**
+
+## 结构
+
+```
+manifest.json           manifest v2，锁 SDK 1.1.0，后端入口 backend/main.py
+package.json / pnpm-lock.yaml   锁定 SDK 1.1.0 的不可变 Release tarball
+src/main.ts             前端；esbuild 打包成自包含 ui/index.html
+scripts/package.mjs     把 JS、CSS、图标全部内联进 ui/index.html
+scripts/verify_parity.py        A/B 逐字节比对 + 放大对比图
+test/                   模块契约测试
+backend/main.py         任务入口：适配宿主任务协议，输出 SVG / PNG / meta
+backend/svg_raster.py   纯 Pillow 的 vtracer SVG 光栅化（PNG 兼容回退）
+backend/img2svg_core/   27 个算法核心 .py，从桌面版 v7.6.0 原样复制
+backend/pylock.toml     PEP 751 依赖锁（4 个官方 wheel，全部真实哈希）
+backend/MODELS.md       说明为何零模型依赖，附 A/B 实测数据
+THIRD_PARTY_NOTICES.md  第三方组件与许可证来源说明
+```
+
+## 效果不变（已实测，不是纸面承诺）
+
+- `backend/img2svg_core/` 与桌面 v7.6.0 的对应文件**逐字节相同**；`core.py`
+  的 sha256 两侧一致。已移除桌面版 v7.5.6 起删除的 GPL 引擎、私有源码复制、
+  原生 `.pyd` 与实验脚本（含 `lum.py`、`lines.py` 等 7 个文件）。
+- 默认参数与桌面 `classify.preset_for("anime")` 逐项一致：
+  `MODE_LUMINA` / 256 色 / 强边缘 / `faithful_hd=True` / `hd=True` / `hd_scale=2.0`。
+- **A/B 结果**：同一张原图，桌面版与模块版各产出 2,905,307 字节 / 5,912 条路径
+  的 SVG，sha256 完全相同，逐字节一致；同输入重跑确定性通过；在没有 `models/`
+  目录、没有 cv2/scipy/onnxruntime 的最小环境里同样一致。
+  证据图：`画质一致性对比_v7.6.0.png`。
+- `png` 输出是**描摹结果 SVG 的光栅化**（不是原图），用于宿主兼容回退；
+  SVG 本身不受影响，仍是权威输出。
+- 桌面版的 `potrace.exe` 兜底在模块侧换成 vtracer 0.6 基础档，因为规范禁止
+  `backend/` 放原生可执行文件；**只在主链路异常时触发**，正常路径不受影响。
+
+## 零模型依赖
+
+v7.5.7 起默认 2× 超分已改为 `enhance.py` 的保色算法（纯 numpy/Pillow），
+不再加载 Real-ESRGAN ONNX 权重。因此 `manifest.json` **刻意不声明**
+`backend.models[]`。详见 `backend/MODELS.md`。
+
+## 许可证与发布者（已确定）
+
+- **许可证：MIT**（`LICENSE`，Copyright (c) 2026 pyramid17）。
+  SDK 为 GPL-3.0-or-later；MIT 属宽松许可，可被 GPL 组合作品吸收，兼容性无碍。
+  模块自身代码与第三方依赖的许可说明见 `THIRD_PARTY_NOTICES.md`。
+- **发布者：`pyramid17`**（`manifest.json` 的 `publisher`，与 `package.json` 的
+  `author` 一致）。
+
+其余原阻塞项已解决：模型公开 URL 不再需要；`pylock.toml` 已补全为完整的
+最小依赖集（4 个官方 wheel，真实 URL + sha256）；`src/main.ts` 的
+`handoff.image` / `image.pick` / `backend.waitFor` 字段已按 SDK 1.1.0
+的 `.d.ts` 与官方测试逐字核对修正。
+
+## 平台范围
+
+`manifest.json.backend.platforms` 目前只声明 `windows-x86_64`，`pylock.toml`
+也只锁 Windows + CPython 3.12 的 wheel —— 这是**实际跑过 A/B 的平台**。
+若要支持 Linux / macOS，需先取对应平台的官方 wheel 补进锁、扩展
+`platforms`，并在那个平台重跑 A/B 比对，不能只改声明。
+
+## 验证
+
+```bash
+pnpm install --frozen-lockfile
+pnpm test
+python -m unittest discover -s backend/tests -v
+python scripts/verify_parity.py --help
+```
+
+## 不能提交的内容
+
+本机路径、凭据、生成压缩包、exe、`.pyd`、模型权重二进制、含本机目录字样的
+交接文档 —— 均按 SDK 仓库 `CONTRIBUTING.md` 第 5 条排除。

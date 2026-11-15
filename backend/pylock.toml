@@ -1,0 +1,47 @@
+# PEP 751 lock for the img2svg Workshop backend (Workshop API 1.1.0).
+#
+# Scope: windows-x86_64 / CPython 3.12 only.  That is the platform on which the
+# byte-for-byte A/B parity check was actually run.  Do not claim other platforms
+# here until they are verified; extend `manifest.json.backend.platforms` first.
+#
+# Every URL and sha256 below is the official value published by PyPI or by the
+# immutable v1.1.0 GitHub Release.  No values are guessed.  All entries are
+# prebuilt wheels (no sdist / VCS / local path), as the backend contract needs.
+lock-version = "1.0"
+created-by = "img2svg workshop module - verified minimal wheel set"
+requires-python = ">=3.12"
+
+[[packages]]
+name = "lumina-workshop-backend"
+version = "1.1.0"
+[[packages.wheels]]
+name = "lumina_workshop_backend-1.1.0-py3-none-any.whl"
+url = "https://github.com/lumina-layer-studio/Lumina-Workshop-SDK/releases/download/v1.1.0/lumina_workshop_backend-1.1.0-py3-none-any.whl"
+hashes = { sha256 = "93e9b3e9fb9bc99318bfa675b00a6aa7d7b5b0cefa2fe67a781bf60d65aaa972" }
+
+[[packages]]
+name = "vtracer"
+version = "0.6.15"
+[[packages.wheels]]
+name = "vtracer-0.6.15-cp312-cp312-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/b1/29/f2e54143938e229ead2c098488d8f92f3464d723a0f52efbf6237926b58f/vtracer-0.6.15-cp312-cp312-win_amd64.whl"
+size = 842765
+hashes = { sha256 = "b0f08b66734e41872d4ac343ed6d08870b3235346def3e112e10b3b2443e619e" }
+
+[[packages]]
+name = "numpy"
+version = "2.5.4"
+[[packages.wheels]]
+name = "numpy-2.5.4-cp312-cp312-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/12/33/fefe62073dc8acfd0f2b9ed7c003af2f50aa61555e113e6db02b8f79f145/numpy-2.5.4-cp312-cp312-win_amd64.whl"
+size = 12573091
+hashes = { sha256 = "a7b1b6353e36a7e50de2973a38d705c88ee93adcf120673cee7f45a4a3fa223a" }
+
+[[packages]]
+name = "pillow"
+version = "13.0.0"
+[[packages.wheels]]
+name = "pillow-13.0.0-cp312-cp312-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/ff/cd/73a79ecdc822076002eb24b5e1e4a530b0bb5310fcb6d239abbec877110b/pillow-13.0.0-cp312-cp312-win_amd64.whl"
+size = 7272166
+hashes = { sha256 = "ff3fe9eb621fbb9db4c4be33ab946f6bac5f98ab50ca8d3260503653656c961b" }

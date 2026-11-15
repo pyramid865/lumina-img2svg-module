@@ -1,0 +1,24 @@
+{
+  "name": "community-img2svg-module",
+  "version": "0.1.0",
+  "author": "pyramid17",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/package.mjs",
+    "test": "node scripts/package.mjs && node --test test/*.test.mjs",
+    "package": "pnpm run build && python scripts/package_archive.py",
+    "pack:release": "pnpm run test && pnpm run package"
+  },
+  "dependencies": {
+    "@lumina/workshop-sdk": "https://github.com/lumina-layer-studio/Lumina-Workshop-SDK/releases/download/v1.1.0/lumina-workshop-sdk-1.1.0.tgz"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  }
+}

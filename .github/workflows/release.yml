@@ -1,0 +1,51 @@
+name: Build module release asset
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+
+      - name: Assemble the single-file .lumina-workshop archive
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, zipfile
+          from pathlib import Path
+          version = json.loads(Path("manifest.json").read_text(encoding="utf-8"))["version"]
+          name = f"community.img2svg-{version}.lumina-workshop"
+          members = [
+              ("manifest.json", "manifest.json"),
+              ("ui/index.html", "ui/index.html"),
+              ("public/assets/icon.png", "assets/icon.png"),
+              ("README.md", "README.md"),
+              ("LICENSE", "LICENSE"),
+          ]
+          with zipfile.ZipFile(name, "w", zipfile.ZIP_DEFLATED) as z:
+              for src, dst in members:
+                  z.write(src, dst)
+          print(name, "members:", [m[1] for m in members])
+          PY
+
+      - name: Upload the built archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumina-workshop-module
+          path: "*.lumina-workshop"
