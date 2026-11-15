@@ -3,7 +3,19 @@
 把桌面版「图片转 SVG」**v7.6.0** 的默认画质链路封装成 Workshop 后端模块
 （manifest v2 / Workshop API 1.1.0）。
 
-**当前状态：本地已完成并通过全部检查，尚未 Fork、未提 PR、未发布。**
+## 下载 / 立即使用
+
+不想装 Python、只想双击就能把图片转成 SVG？下载**内置 Python 的本地网页版**（全自动、离线）：
+
+- **直接下载**：[img2svg-webui-portable-v7.6.0.zip（约 31.5 MB）](https://github.com/pyramid865/lumina-img2svg-module/releases/download/v0.1.0/img2svg-webui-portable-v7.6.0.zip)
+- 下载后解压，**双击 `START.bat`** 即可，浏览器会自动打开。无需安装任何东西，全程离线。
+- 所有版本和文件都在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases) → **v0.1.0** 下方的 **Assets** 区域。
+
+其他下载项：
+- Workshop 模块包：`community.img2svg-0.1.0.lumina-workshop`（同一 Release 的 Assets 里）。
+
+**当前状态**：模块包已发布到 Release v0.1.0，并已向 Lumina-Workshop-Registry
+提交登记 PR（#9），等待维护者审核。
 
 ## 结构
 
