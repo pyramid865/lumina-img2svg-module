@@ -1,15 +1,17 @@
 # community.img2svg — Lumina Workshop 模块
 
-把桌面版「图片转 SVG」**v7.6.0** 的默认画质链路封装成 Workshop 后端模块
-（manifest v2 / Workshop API 1.1.0）。
+把桌面版「图片转 SVG」**v7.6.1** 的默认画质链路封装成 Workshop 后端模块
+（manifest v2 / Workshop API 1.1.0）。v0.1.1 起将 v7.6.1 的高细节描摹参数
+（case7：color_precision=8 / layer_difference=8 / corner_threshold=86）backport
+到模块，实测高细节插画的发丝、镜框、暗部明显更清晰，且全程零模型、零二进制。
 
 ## 下载 / 立即使用
 
 不想装 Python、只想双击就能把图片转成 SVG？下载**内置 Python 的本地网页版**（全自动、离线）：
 
-- **直接下载**：[img2svg-webui-portable-v7.6.0.zip（约 31.5 MB）](https://github.com/pyramid865/lumina-img2svg-module/releases/download/v0.1.0/img2svg-webui-portable-v7.6.0.zip)
+- **直接下载**：[图片转SVG-网页版-内置Python-v7.6.1.zip（约 31.5 MB）](https://github.com/pyramid865/lumina-img2svg-module/releases/download/v0.1.1/图片转SVG-网页版-内置Python-v7.6.1.zip)
 - 下载后解压，**双击 `START.bat`** 即可，浏览器会自动打开。无需安装任何东西，全程离线。
-- 所有版本和文件都在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases) → **v0.1.0** 下方的 **Assets** 区域。
+- 所有版本和文件都在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases) → **v0.1.1** 下方的 **Assets** 区域。
 
 其他下载项：
 - Workshop 模块包（最新补丁版）：`community.img2svg-0.1.1.lumina-workshop`

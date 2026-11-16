@@ -1005,16 +1005,17 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
                 step("高清化跳过（%s）" % exc)
 
         try:
-            layer = int(max(4, round(14 - s.colors / 20.0)))
-            # fidelity first: tiny specks and short segments survive, colours are
-            # collapsed afterwards by _merge_svg_colours, which keeps hairlines
+            # v7.6.1 画质参数（从桌面版 backport，2026-11-16）：
+            # 保色超分 + case7 描摹参数（color_precision=8 / layer_diff=8 /
+            # corner=86 / filter_speckle=4）。实测同一张高细节插画：
+            # 旧参数脸发灰、发丝糊成浅色一片；case7 后脸部不发灰、镜框更黑、
+            # 发丝层次清楚。颜色随后由 _merge_svg_colours 收束到 256 色大色块。
+            # 不引入任何模型或二进制（模块 backend 为 text-only）。
             _vtrace(
                 _work, dst,
                 clustering="color", hierarchical="cutout", mode="spline",
-                filter_speckle=int(max(1, 4 - s.detail // 3)),
-                color_precision=int(min(8, 5 + s.detail // 2)), layer_difference=layer,
-                corner_threshold=int(max(55, 88 - s.detail * 2)),
-                length_threshold=float(max(1.5, 3.2 - s.detail * 0.16)),
+                filter_speckle=4, color_precision=8, layer_difference=8,
+                corner_threshold=86, length_threshold=3.0,
                 max_iterations=10, splice_threshold=45, path_precision=2)
         finally:
             if _hd_tmp:
