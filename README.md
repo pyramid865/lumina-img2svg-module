@@ -9,7 +9,7 @@
 
 不想装 Python、只想双击就能把图片转成 SVG？下载**内置 Python 的本地网页版**（全自动、离线）：
 
-- **直接下载**：[图片转SVG-网页版-内置Python-v7.6.1.zip（约 31.5 MB）](https://github.com/pyramid865/lumina-img2svg-module/releases/download/v0.1.1/图片转SVG-网页版-内置Python-v7.6.1.zip)
+- **直接下载**：[img2svg-webui-portable-v7.6.1.zip（约 31.5 MB）](https://github.com/pyramid865/lumina-img2svg-module/releases/download/v0.1.1/img2svg-webui-portable-v7.6.1.zip)
 - 下载后解压，**双击 `START.bat`** 即可，浏览器会自动打开。无需安装任何东西，全程离线。
 - 所有版本和文件都在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases) → **v0.1.1** 下方的 **Assets** 区域。
 
