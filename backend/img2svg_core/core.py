@@ -42,7 +42,7 @@ MODE_OWN = "own"          # self-developed layered tracer (experimental)
 MODE_OWN_LAB = "ownlab"   # experimental build: own + thin-line gap repair
 MODE_QQ3D = "qq3d"        # qq3d-like fidelity tracer: pre-quantize + palette snap
 MODE_AI_LINE = "ai_line"   # 自研形态学线条层（无需 torch / 无外部权重）；常量名保留以兼容旧配置
-APP_VERSION = "v7.6.0"    # 单一版本源：GUI 标题 / 打包文件名都从这里派生，勿在别处写死
+APP_VERSION = "v7.6.1"    # 单一版本源：GUI 标题 / 打包文件名都从这里派生，勿在别处写死
 
 # 输出文件名统一前缀：本软件品牌名（Lumina 叠色打印 + 矢量 Vector 的缩写）。
 # 所有导出 SVG 一律以它开头，形如 LumVec-20261115_132501-anime.svg。

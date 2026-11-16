@@ -12,11 +12,13 @@ BACKEND = ROOT / "backend"
 
 
 class BackendContractTests(unittest.TestCase):
-    def test_tracing_core_is_current_v760(self) -> None:
+    def test_tracing_core_is_current_v761(self) -> None:
         core = BACKEND / "img2svg_core" / "core.py"
         self.assertTrue(core.is_file())
         text = core.read_text(encoding="utf-8")
-        self.assertIn('APP_VERSION = "v7.6.0"', text)
+        self.assertIn('APP_VERSION = "v7.6.1"', text)
+        # v0.1.2 backports the v7.6.1 high-detail tracing parameters.
+        self.assertIn("corner_threshold=86", text)
         # Files removed by the desktop compliance rewrite must not reappear.
         for gone in ("lum.py", "lines.py", "detail_guided.py", "cleanup.py",
                      "postfilter.py", "printcheck.py", "shared_edge.py"):
@@ -69,7 +71,7 @@ class BackendContractTests(unittest.TestCase):
         self.assertEqual(m["backend"]["python"], "3.12")
         self.assertEqual(m["backend"]["lock"], "backend/pylock.toml")
         self.assertNotIn("models", m["backend"],
-                         "v7.6.0 默认链路零模型依赖，不应声明 models[]")
+                         "v7.6.1 默认链路零模型依赖，不应声明 models[]")
         perms = {p["name"] for p in m["permissions"]}
         self.assertEqual(perms, {"image.pick", "color-library.read", "handoff.image"})
 

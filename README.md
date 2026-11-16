@@ -1,7 +1,7 @@
 # community.img2svg — Lumina Workshop 模块
 
 把桌面版「图片转 SVG」**v7.6.1** 的默认画质链路封装成 Workshop 后端模块
-（manifest v2 / Workshop API 1.1.0）。v0.1.1 起将 v7.6.1 的高细节描摹参数
+（manifest v2 / Workshop API 1.1.0）。v0.1.2 起将 v7.6.1 的高细节描摹参数
 （case7：color_precision=8 / layer_difference=8 / corner_threshold=86）backport
 到模块，实测高细节插画的发丝、镜框、暗部明显更清晰，且全程零模型、零二进制。
 
@@ -9,18 +9,19 @@
 
 不想装 Python、只想双击就能把图片转成 SVG？下载**内置 Python 的本地网页版**（全自动、离线）：
 
-- **直接下载**：[img2svg-webui-portable-v7.6.1.zip（约 31.5 MB）](https://github.com/pyramid865/lumina-img2svg-module/releases/download/v0.1.1/img2svg-webui-portable-v7.6.1.zip)
+- **直接下载**：[img2svg-webui-portable-v7.6.1.zip（约 31.5 MB）](https://github.com/pyramid865/lumina-img2svg-module/releases/download/v0.1.2/img2svg-webui-portable-v7.6.1.zip)
 - 下载后解压，**双击 `START.bat`** 即可，浏览器会自动打开。无需安装任何东西，全程离线。
-- 所有版本和文件都在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases) → **v0.1.1** 下方的 **Assets** 区域。
+- 所有版本和文件都在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases) → **v0.1.2** 下方的 **Assets** 区域。
 
 其他下载项：
-- Workshop 模块包（最新补丁版）：`community.img2svg-0.1.1.lumina-workshop`
-  （[Release v0.1.1](https://github.com/pyramid865/lumina-img2svg-module/releases/tag/v0.1.1) 的 Assets 里）。
-  v0.1.1 修复了交接时 ArrayBuffer 被转移导致二次确认失败的问题，并补齐内联
-  SDK 的 GPL 声明与许可证正文。旧版 v0.1.0 的标签与资产保持不变。
+- Workshop 模块包（最新补丁版）：`community.img2svg-0.1.2.lumina-workshop`
+  （[Release v0.1.2](https://github.com/pyramid865/lumina-img2svg-module/releases/tag/v0.1.2) 的 Assets 里）。
+  - v0.1.1 修复了交接时 ArrayBuffer 被转移导致二次确认失败的问题，并补齐内联 SDK 的 GPL 声明与许可证正文。
+  - v0.1.2 新增画质补丁：backport 桌面 v7.6.1 的高细节描摹参数（case7），高细节插画的发丝、镜框、暗部明显更清晰，零模型、零二进制。
+  - 旧版 v0.1.0 / v0.1.1 的标签与资产保持不变。
 
-**当前状态**：模块包 v0.1.1 已发布到 Release v0.1.1；Lumina-Workshop-Registry
-登记 PR（#9）已按审核意见更新为 v0.1.1。
+**当前状态**：模块包 v0.1.2 已发布到 Release v0.1.2；Lumina-Workshop-Registry
+登记 PR（#9，v0.1.1）已合并，v0.1.2 作为新版本单独登记。
 
 ## 结构
 
