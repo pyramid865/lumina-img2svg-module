@@ -89,14 +89,25 @@ test("backend 源码不含本机路径或凭据字样", async () => {
   await walk(path.join(root, "backend"));
 });
 
-test("src/main.ts 使用 SDK 1.1.0 的真实字段", async () => {
+test("src/main.ts 使用 SDK 1.1.0 的真实字段并委托交接构造", async () => {
   const src = await readFile(path.join(root, "src/main.ts"), "utf8");
   // WorkshopPickedImage uses `name`, not `fileName`.
   assert.ok(src.includes("picked.name"), "image.pick() 返回 name 字段");
   assert.ok(!src.includes("picked.fileName"), "不得使用不存在的 picked.fileName");
   // onProgress receives the whole task; progress lives at task.progress.
   assert.ok(src.includes("t.progress"), "waitFor 回调需读 task.progress");
-  // WorkshopImageHandoff required fields.
+  assert.ok(!src.includes("widthPx"), "widthPx 不是 SDK 字段");
+  // Read the traced SVG's real size from the backend meta output.
+  assert.ok(src.includes('readOutput(finished.taskId, "meta")'), "需读取 meta 输出");
+  // 交接构造已抽到 handoff.ts；main.ts 只委托，不自己拼 projectId/buffer。
+  assert.ok(src.includes("buildHandoffRequest"), "main.ts 应使用 buildHandoffRequest");
+  assert.ok(src.includes("newConversion"), "main.ts 应使用 newConversion");
+  assert.ok(!src.includes("projectId: crypto.randomUUID()"),
+            "projectId 不得在交接点击时重新生成（宿主靠它识别确认重试）");
+});
+
+test("handoff.ts 构造完整 WorkshopImageHandoff 并在发送边界复制 buffer", async () => {
+  const src = await readFile(path.join(root, "src/handoff.ts"), "utf8");
   for (const field of ["moduleId", "moduleVersion", "projectId", "pngBytes",
                        "pixelWidth", "pixelHeight", "recommendedWidthMm",
                        "recommendedHeightMm", "preserveCanvasBounds",
@@ -104,11 +115,11 @@ test("src/main.ts 使用 SDK 1.1.0 的真实字段", async () => {
     assert.ok(src.includes(`${field}:`) || src.includes(`${field} `),
               `handoff.image 缺少字段: ${field}`);
   }
-  assert.ok(!src.includes("widthPx"), "widthPx 不是 SDK 字段");
-  // Read the traced SVG's real size from the backend meta output.
-  assert.ok(src.includes('readOutput(finished.taskId, "meta")'), "需读取 meta 输出");
-  // Avoid transferring away the only copy of the buffers.
-  assert.ok(src.includes(".slice(0)"), "交接前需复制 ArrayBuffer 以免被转移");
+  // 发送边界必须复制，否则第二次交接会转移已 detach 的 buffer。
+  assert.ok(src.includes("result.pngBytes.slice(0)"), "PNG 需在发送边界复制");
+  assert.ok(src.includes("result.svgBytes ? result.svgBytes.slice(0)"), "SVG 需在发送边界复制");
+  // projectId 来自结果，不在每次请求时生成。
+  assert.ok(src.includes("projectId: result.projectId"), "交接需复用结果里的 projectId");
 });
 
 test("pylock.toml 的每个包都有 HTTPS URL 与 sha256", async () => {

@@ -1,7 +1,7 @@
 {
   "manifestVersion": 2,
   "id": "community.img2svg",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "name": {
     "zh-CN": "图片转 SVG",
     "en-US": "Image to SVG"
@@ -39,7 +39,9 @@
     "entry": "backend/main.py",
     "python": "3.12",
     "lock": "backend/pylock.toml",
-    "platforms": ["windows-x86_64"],
+    "platforms": [
+      "windows-x86_64"
+    ],
     "capabilities": [],
     "idleTimeoutSeconds": 300
   }

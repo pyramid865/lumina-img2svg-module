@@ -12,10 +12,13 @@
 - 所有版本和文件都在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases) → **v0.1.0** 下方的 **Assets** 区域。
 
 其他下载项：
-- Workshop 模块包：`community.img2svg-0.1.0.lumina-workshop`（同一 Release 的 Assets 里）。
+- Workshop 模块包（最新补丁版）：`community.img2svg-0.1.1.lumina-workshop`
+  （[Release v0.1.1](https://github.com/pyramid865/lumina-img2svg-module/releases/tag/v0.1.1) 的 Assets 里）。
+  v0.1.1 修复了交接时 ArrayBuffer 被转移导致二次确认失败的问题，并补齐内联
+  SDK 的 GPL 声明与许可证正文。旧版 v0.1.0 的标签与资产保持不变。
 
-**当前状态**：模块包已发布到 Release v0.1.0，并已向 Lumina-Workshop-Registry
-提交登记 PR（#9），等待维护者审核。
+**当前状态**：模块包 v0.1.1 已发布到 Release v0.1.1；Lumina-Workshop-Registry
+登记 PR（#9）已按审核意见更新为 v0.1.1。
 
 ## 结构
 
@@ -58,9 +61,13 @@ v7.5.7 起默认 2× 超分已改为 `enhance.py` 的保色算法（纯 numpy/Pi
 
 ## 许可证与发布者（已确定）
 
-- **许可证：MIT**（`LICENSE`，Copyright (c) 2026 pyramid17）。
-  SDK 为 GPL-3.0-or-later；MIT 属宽松许可，可被 GPL 组合作品吸收，兼容性无碍。
-  模块自身代码与第三方依赖的许可说明见 `THIRD_PARTY_NOTICES.md`。
+- **模块自身代码：MIT**（Copyright (c) 2026 pyramid17）。
+- **内联的 `@lumina/workshop-sdk`：GPL-3.0-or-later**
+  （Copyright (C) Lumina Layer Studio contributors）。UI 是自包含单文件，
+  内联了 SDK 客户端；由于构建时 `legalComments: "none"` 去除了上游声明，
+  根 `LICENSE` 现同时保留作者 MIT 声明、SDK 上游声明与**完整 GPL-3.0 正文**，
+  以满足所分发 SDK 的许可义务。模块自身代码与第三方依赖的来源说明见
+  `THIRD_PARTY_NOTICES.md`。
 - **发布者：`pyramid17`**（`manifest.json` 的 `publisher`，与 `package.json` 的
   `author` 一致）。
 

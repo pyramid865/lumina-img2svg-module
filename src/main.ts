@@ -1,23 +1,19 @@
 import { applyWorkshopUiState, connectWorkshop } from "@lumina/workshop-sdk";
+import { buildHandoffRequest, newConversion, type ConversionResult } from "./handoff";
 
 const MODULE_ID = "community.img2svg";
-const MODULE_VERSION = "0.1.0";
+const MODULE_VERSION = "0.1.1";
 const PROJECT_SCHEMA = "community.img2svg/v1";
 const RENDER_SCHEMA = "community.img2svg-render/v1";
-
-// Conservative print size at 300 dpi; the host re-validates everything we send.
-const MM_PER_PIXEL = 25.4 / 300;
 
 const statusEl = document.getElementById("status") as HTMLElement;
 const convertBtn = document.getElementById("convert") as HTMLButtonElement;
 const handoffBtn = document.getElementById("handoff") as HTMLButtonElement;
 const progressEl = document.getElementById("progress") as HTMLElement;
 
-let lastPng: ArrayBuffer | null = null;
-let lastSvg: ArrayBuffer | null = null;
-let lastWidth = 0;
-let lastHeight = 0;
-let lastInputName = "source.png";
+// One entry per completed conversion. projectId lives inside the result and
+// is stable across all handoffs of that result; a new conversion replaces it.
+let lastResult: ConversionResult | null = null;
 
 function setStatus(text: string): void {
   statusEl.textContent = text;
@@ -46,9 +42,6 @@ async function main(): Promise<void> {
         setStatus("已取消选择");
         return;
       }
-      lastInputName = picked.name;
-      lastWidth = picked.raster.width;
-      lastHeight = picked.raster.height;
 
       setStatus("已提交描摹任务…");
       const task = await client.backend.submit({
@@ -81,11 +74,15 @@ async function main(): Promise<void> {
       const meta = JSON.parse(new TextDecoder().decode(metaOutput.bytes)) as {
         width: number; height: number; degraded: boolean;
       };
-      lastWidth = meta.width;
-      lastHeight = meta.height;
-      // `bytes` is an ArrayBuffer; handoff transfers it, so keep a copy.
-      lastSvg = svgOutput.bytes.slice(0);
-      lastPng = pngOutput.bytes.slice(0);
+      // `bytes` is an ArrayBuffer; handoff transfers its own COPY at the send
+      // boundary, so these stored originals stay intact for repeated handoffs.
+      lastResult = newConversion({
+        pngBytes: pngOutput.bytes.slice(0),
+        svgBytes: svgOutput.bytes.slice(0),
+        pixelWidth: meta.width,
+        pixelHeight: meta.height,
+        inputName: picked.name,
+      });
       handoffBtn.disabled = false;
       setStatus("描摹完成，可交给 Lumina 转换器");
     } catch (err) {
@@ -96,30 +93,17 @@ async function main(): Promise<void> {
   });
 
   handoffBtn.addEventListener("click", async () => {
-    if (!lastPng) return;
+    if (!lastResult) return;
     try {
       const library = await client.colorLibrary.read();
-      const result = await client.handoff.image({
+      const request = buildHandoffRequest(lastResult, {
         moduleId: MODULE_ID,
         moduleVersion: MODULE_VERSION,
-        projectId: crypto.randomUUID(),
-        pngBytes: lastPng,
-        ...(lastSvg ? { svgBytes: lastSvg } : {}),
-        pixelWidth: lastWidth,
-        pixelHeight: lastHeight,
-        recommendedWidthMm: Math.round(lastWidth * MM_PER_PIXEL * 100) / 100,
-        recommendedHeightMm: Math.round(lastHeight * MM_PER_PIXEL * 100) / 100,
-        preserveCanvasBounds: true,
+        projectSchema: PROJECT_SCHEMA,
+        renderSchema: RENDER_SCHEMA,
         colorLibraryId: library?.id ?? null,
-        recipeSource: {
-          manifestSchemaVersion: 1,
-          moduleId: MODULE_ID,
-          moduleVersion: MODULE_VERSION,
-          projectSchemaVersion: PROJECT_SCHEMA,
-          renderSchemaVersion: RENDER_SCHEMA,
-          payload: { source: lastInputName, engine: "lumina", colors: 256, hdScale: 2 },
-        },
       });
+      const result = await client.handoff.image(request);
       setStatus(result.status === "needs-confirmation"
         ? "转换器已有工作，请确认替换后再交接一次"
         : "已交接给 Lumina 转换器");
