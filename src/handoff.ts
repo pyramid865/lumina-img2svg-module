@@ -1,4 +1,5 @@
 import type { WorkshopImageHandoff } from "@lumina/workshop-sdk";
+import { MODULE_ID, MODULE_VERSION } from "./version.ts";
 
 // Conservative print size at 300 dpi; the host re-validates everything we send.
 const MM_PER_PIXEL = 25.4 / 300;
@@ -33,8 +34,6 @@ export function newConversion(input: {
 }
 
 export interface HandoffContext {
-  moduleId: string;
-  moduleVersion: string;
   projectSchema: string;
   renderSchema: string;
   colorLibraryId: string | null;
@@ -56,8 +55,8 @@ export function buildHandoffRequest(
   const pngBytes = result.pngBytes.slice(0);
   const svgBytes = result.svgBytes ? result.svgBytes.slice(0) : undefined;
   return {
-    moduleId: ctx.moduleId,
-    moduleVersion: ctx.moduleVersion,
+    moduleId: MODULE_ID,
+    moduleVersion: MODULE_VERSION,
     projectId: result.projectId,
     pngBytes,
     ...(svgBytes ? { svgBytes } : {}),
@@ -69,8 +68,8 @@ export function buildHandoffRequest(
     colorLibraryId: ctx.colorLibraryId,
     recipeSource: {
       manifestSchemaVersion: 1,
-      moduleId: ctx.moduleId,
-      moduleVersion: ctx.moduleVersion,
+      moduleId: MODULE_ID,
+      moduleVersion: MODULE_VERSION,
       projectSchemaVersion: ctx.projectSchema,
       renderSchemaVersion: ctx.renderSchema,
       payload: { source: result.inputName, engine: "lumina", colors: 256, hdScale: 2 },

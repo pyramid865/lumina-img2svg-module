@@ -1,8 +1,7 @@
 import { applyWorkshopUiState, connectWorkshop } from "@lumina/workshop-sdk";
 import { buildHandoffRequest, newConversion, type ConversionResult } from "./handoff";
+import { MODULE_ID, MODULE_VERSION } from "./version.ts";
 
-const MODULE_ID = "community.img2svg";
-const MODULE_VERSION = "0.1.1";
 const PROJECT_SCHEMA = "community.img2svg/v1";
 const RENDER_SCHEMA = "community.img2svg-render/v1";
 
@@ -97,8 +96,6 @@ async function main(): Promise<void> {
     try {
       const library = await client.colorLibrary.read();
       const request = buildHandoffRequest(lastResult, {
-        moduleId: MODULE_ID,
-        moduleVersion: MODULE_VERSION,
         projectSchema: PROJECT_SCHEMA,
         renderSchema: RENDER_SCHEMA,
         colorLibraryId: library?.id ?? null,

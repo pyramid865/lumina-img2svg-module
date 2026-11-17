@@ -6,9 +6,7 @@ import {
   connectWorkshop,
 } from "@lumina/workshop-sdk";
 import { buildHandoffRequest, newConversion } from "../src/handoff.ts";
-
-const MODULE_ID = "community.img2svg";
-const MODULE_VERSION = "0.1.1";
+import { MODULE_ID, MODULE_VERSION } from "../src/version.ts";
 
 function rgba(n) {
   const b = new ArrayBuffer(n);
@@ -86,8 +84,6 @@ async function withClient(answer) {
 
 function ctx() {
   return {
-    moduleId: MODULE_ID,
-    moduleVersion: MODULE_VERSION,
     projectSchema: "community.img2svg/v1",
     renderSchema: "community.img2svg-render/v1",
     colorLibraryId: null,
@@ -119,6 +115,9 @@ test("真实 MessagePort：首次交接→已有工作二次确认→重复交�
       assert.equal(s.projectId, result.projectId, "确认重试必须复用同一 projectId");
       assert.equal(s.pngSize, 64, "到达宿主的 PNG 未 detached");
       assert.equal(s.svgSize, 128, "到达宿主的 SVG 未 detached");
+      assert.equal(s.payload.moduleVersion, MODULE_VERSION, "handoff 版本须等于清单版本");
+      assert.equal(s.payload.moduleId, MODULE_ID, "handoff 身份须等于清单 id");
+      assert.equal(s.payload.recipeSource.moduleVersion, MODULE_VERSION, "配方来源版本须等于清单版本");
     }
     // 原始 result 的 buffer 从未被转移走 —— 发送边界复制生效。
     assert.equal(result.pngBytes.byteLength, 64, "存储的原 PNG 未被 detach");
