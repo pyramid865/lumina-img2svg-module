@@ -1,5 +1,6 @@
 import { applyWorkshopUiState, connectWorkshop } from "@lumina/workshop-sdk";
 import { buildHandoffRequest, newConversion, type ConversionResult } from "./handoff";
+import { safeTaskFileName, safeTaskMimeType } from "./taskInput.ts";
 import { MODULE_ID, MODULE_VERSION } from "./version.ts";
 
 const PROJECT_SCHEMA = "community.img2svg/v1";
@@ -42,14 +43,23 @@ async function main(): Promise<void> {
         return;
       }
 
-      setStatus("已提交描摹任务…");
+      // The host rejects non-ASCII file names before the task is queued, so we
+      // submit a sanitised name; `picked.name` is still used for the handoff
+      // recipe below so the user keeps their original name where it matters.
+      const mimeType = safeTaskMimeType(picked.mimeType, picked.name);
+      const fileName = safeTaskFileName(picked.name, mimeType);
+      setStatus(
+        fileName === picked.name
+          ? "已提交描摹任务…"
+          : `已提交描摹任务…（原文件名含非英文字符，已改用 ${fileName}）`,
+      );
       const task = await client.backend.submit({
         operation: "image-to-svg",
         params: {},
         inputs: [{
           name: "image",
-          fileName: picked.name,
-          mimeType: picked.mimeType,
+          fileName,
+          mimeType,
           bytes: picked.bytes,
         }],
         idempotencyKey: crypto.randomUUID(),
