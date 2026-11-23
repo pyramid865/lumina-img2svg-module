@@ -2,6 +2,7 @@ import { applyWorkshopUiState, connectWorkshop } from "@lumina/workshop-sdk";
 import { buildHandoffRequest, newConversion, type ConversionResult } from "./handoff";
 import { safeTaskFileName, safeTaskMimeType } from "./taskInput.ts";
 import { largeImageHint, readImageSize } from "./imageSize.ts";
+import { describeProgress } from "./progressText.ts";
 import { MODULE_ID, MODULE_VERSION } from "./version.ts";
 
 const PROJECT_SCHEMA = "community.img2svg/v1";
@@ -68,12 +69,36 @@ async function main(): Promise<void> {
       });
 
       // onProgress receives the whole WorkshopBackendTask, not a progress object.
-      const finished = await client.backend.waitFor(task.taskId, {
-        onProgress: (t) => {
-          const p = t.progress;
-          progressEl.textContent = `${p?.phase ?? "描摹中"} ${p?.completed ?? 0}/${p?.total ?? 3}`;
-        },
-      });
+      // The host only reports coarse phases, so a one-second ticker keeps a
+      // visible "已用 N 秒" running while the tracer works — size hints alone
+      // miss small-but-detailed drawings that still take a minute.
+      let latest: { phase?: string; completed?: number; total?: number } | null = null;
+      const startedAt = Date.now();
+      const renderProgress = () => {
+        progressEl.textContent = describeProgress(
+          latest?.phase,
+          latest?.completed,
+          latest?.total,
+          (Date.now() - startedAt) / 1000,
+        );
+      };
+      renderProgress();
+      const ticker = window.setInterval(renderProgress, 1000);
+      let finished: Awaited<ReturnType<typeof client.backend.waitFor>>;
+      try {
+        finished = await client.backend.waitFor(task.taskId, {
+          onProgress: (t) => {
+            latest = t.progress ?? null;
+            renderProgress();
+          },
+        });
+      } finally {
+        window.clearInterval(ticker);
+      }
+      latest = finished.status === "succeeded"
+        ? { phase: "done", completed: 3, total: 3 }
+        : { phase: finished.error?.code ?? "failed", completed: 2, total: 3 };
+      renderProgress();
       if (finished.status === "failed") {
         throw new Error(finished.error?.code ?? "task-failed");
       }
