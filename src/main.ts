@@ -1,6 +1,7 @@
 import { applyWorkshopUiState, connectWorkshop } from "@lumina/workshop-sdk";
 import { buildHandoffRequest, newConversion, type ConversionResult } from "./handoff";
 import { safeTaskFileName, safeTaskMimeType } from "./taskInput.ts";
+import { largeImageHint, readImageSize } from "./imageSize.ts";
 import { MODULE_ID, MODULE_VERSION } from "./version.ts";
 
 const PROJECT_SCHEMA = "community.img2svg/v1";
@@ -48,11 +49,12 @@ async function main(): Promise<void> {
       // recipe below so the user keeps their original name where it matters.
       const mimeType = safeTaskMimeType(picked.mimeType, picked.name);
       const fileName = safeTaskFileName(picked.name, mimeType);
-      setStatus(
-        fileName === picked.name
-          ? "已提交描摹任务…"
-          : `已提交描摹任务…（原文件名含非英文字符，已改用 ${fileName}）`,
-      );
+      const size = readImageSize(picked.bytes, mimeType);
+      const notes = [
+        fileName === picked.name ? null : `（原文件名含非英文字符，已改用 ${fileName}）`,
+        size === null ? null : largeImageHint(size.width, size.height),
+      ].filter((note): note is string => note !== null);
+      setStatus(["已提交描摹任务…", ...notes].join(" "));
       const task = await client.backend.submit({
         operation: "image-to-svg",
         params: {},
