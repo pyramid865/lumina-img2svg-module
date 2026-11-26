@@ -1,9 +1,15 @@
-# Minimal runtime set for the default anime preset of img2svg v7.6.0.
-# Verified: with only these four wheels installed, the traced SVG is
-# byte-identical to the desktop build (2,905,307 B / 5912 paths).
-# No onnxruntime / opencv / scipy / torch: v7.5.7 replaced model-based
-# super-resolution with the colour-safe, numpy-only `enhance` upscaler.
+# Runtime set for the linefirst tracing core (desktop v7.24 behaviour).
+#
+# opencv + scipy are hard requirements of img2svg_core/linefirst.py:
+#   * OpenCV  - k-means palette, Sobel edges, Gaussian vote, morphology, colour conversion
+#   * scipy   - distance_transform_edt (adaptive blur), find_objects (soft vote)
+# Both ship as prebuilt wheels; nothing is compiled at install time.
+#
+# Still no onnxruntime / torch / scikit-image: the linefirst path never imports
+# them (skimage is only referenced by legacy engines that this module never calls).
 lumina-workshop-backend @ https://github.com/lumina-layer-studio/Lumina-Workshop-SDK/releases/download/v1.1.0/lumina_workshop_backend-1.1.0-py3-none-any.whl
 vtracer==0.6.15
 numpy==2.5.4
 Pillow==13.0.0
+opencv-python-headless==5.1.0.95
+scipy==1.18.1

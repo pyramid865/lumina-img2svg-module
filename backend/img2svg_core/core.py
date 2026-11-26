@@ -42,7 +42,44 @@ MODE_OWN = "own"          # self-developed layered tracer (experimental)
 MODE_OWN_LAB = "ownlab"   # experimental build: own + thin-line gap repair
 MODE_QQ3D = "qq3d"        # qq3d-like fidelity tracer: pre-quantize + palette snap
 MODE_AI_LINE = "ai_line"   # 自研形态学线条层（无需 torch / 无外部权重）；常量名保留以兼容旧配置
-APP_VERSION = "v7.6.1"    # 单一版本源：GUI 标题 / 打包文件名都从这里派生，勿在别处写死
+MODE_HYBRID = "hybrid"    # v7.7.0 自研混合引擎：墨线统一 + 长曲线拟合（高细节碎线攻关，见 HANDOFF §27）
+MODE_SMOOTH = "smooth"    # v7.8.0 自研平滑大色块引擎：平滑区统一主色 + L/A/Q 长弧（治色斑+碎线，见 HANDOFF §28）
+MODE_BANDS = "bands"      # v7.10.0 自研色带引擎：色带量化 + 边缘自适应模糊投票 + 区域取色（阴影自然，见 HANDOFF §30）
+MODE_FUSION = "fusion"    # v7.16.0 完全自研准色平涂引擎（flatfill.py）：OKLab 量化 + cutout 完整线条 + 自研色板吸附（治黑块，见 HANDOFF §33）
+MODE_FLATSTYLE = "flatstyle"  # v7.17.0 自研平涂长弧风格引擎（flatstyle.py）：渐变→大色块+共边L/A/Q（对标嘻嘻宝，见 HANDOFF §35）
+MODE_SILKY = "silky"          # v7.18.0 自研顺滑优先引擎（silky.py）：相邻小色块近色归并+五官钉色，牺牲细节换线条/色块/边缘顺滑
+MODE_XIXI = "xixi"            # v7.18.1 自研嘻嘻宝平涂风格引擎（xixistyle.py）：78色+每色约56块+L/A/Q长弧+每区域同色描边
+MODE_SEGREGION = "segregion"  # v7.17.5 引擎级重写：4x 区域分割+原图取色（手动可选，脸更干净）
+MODE_FACE_CLEAN = "faceclean"  # v7.17.4 新增：CNN 识别平滑区 + 整片重取主色（保真线可选模式，默认引擎不变）
+MODE_LINENET = "linenet"      # v7.17.8：L2 边界 = ΔE ∪ 热力图软约束（$Bug$「热力图只出约束」），补回淡彩图漏线
+MODE_LINEFIRST = "linefirst"  # v7.21.0 全新独立引擎（linefirst.py）：先定线后填色，自适应分区切网眼+明暗色阶，对标别人工具
+APP_VERSION = "v7.26.0"    # 单一版本源：GUI 标题 / 打包文件名都从这里派生，勿在别处写死
+# 构建时开关：auto 默认引擎（打包不同产品线时切换，见 HANDOFF §37）
+#   MODE_FUSION    = v7.17.x 保真线（不牺牲细节，网格 3200）
+#   MODE_SILKY     = v7.18.x 舍弃细节线（合并小色块 + 边界平滑，网格 2400）
+#   MODE_LINEFIRST = v7.21.x 先定线填色线（全新引擎，对标别人工具的干净平涂）
+AUTO_MAIN_ENGINE = MODE_LINEFIRST   # v7.21.0 先定线后填色（独立新产品线）
+
+# v7.17.10 底图压缩总开关（flatfill / linenet 共用 pathopt.py）。
+# 关掉后 auto 与 fusion 系列的底图恢复为 vtracer 原样（体积大 1.6~2.5 倍）。
+# 逐像素无损部分是属性提升，亚像素部分是 d 里退化贝塞尔转直线，详见 pathopt.py。
+COMPACT_BASE_PATHS = True
+
+# 产品线标签（v7.18.1 起，用户要求两条线必须一眼区分，别再混版）：
+#   保真线      = v7.17.x（AUTO_MAIN_ENGINE = MODE_FUSION），只增不减，不牺牲细节
+#   舍弃细节线  = v7.18.x（AUTO_MAIN_ENGINE = MODE_SILKY），合并小色块 + 边界平滑换顺滑
+# 交付目录 / exe 名 / 源码包名 / 窗口标题都从这里取，改线只改这两个字符串。
+# 注意：BUILD_LINE_TAG 必须是纯字符串字面量，build.ps1 用正则直读它来命名交付文件夹。
+BUILD_LINE_TAG = "先定线填色线"
+BUILD_LINE_DESC = "全新引擎：先用AI钉死线稿当墙，再把画面切成小格填色——纹理区自动切成规整小格、皮肤带明暗过渡，对标别人工具的干净平涂。全自动无需设置。v7.24.0 专为 3D 打印叠色优化：输出全部是闭合的实心纯色块（可直接当色片分层打印），去掉切片软件读不了的位图底图和打印无用的细线稿层，色块自动补缝不留白，文件更小出图更快。v7.24.1 修界面：已完成列表鼠标滚轮可上下滚、待转换缩略图放大。v7.24.2：顶部长说明收进「关于」菜单，新增版本信息与更新记录窗口。v7.24.3：关于窗口补全从 v1.0 至今全部 55 条更新记录，可按引擎/模型/算法等类别筛选。v7.25.0：借鉴两个开源项目取长补短，自研「打印体检」——转完自动报告颜色数/碎块/细线占比，打印前就知道好不好打，报告写进SVG右键可看。v7.25.1：修复体检报告写错位置导致SVG打不开的紧急bug（图会消失只剩文字），加写盘前XML自检。v7.26.0：按用户选定方案把颜色档数从160降到56（实测画质几乎不变、颜色数少一大半，打印省料省换色），并把AI真轮廓加粗成2px宽的闭合实心深色带正式并入打印版——找回发丝和五官轮廓，同时修掉加粗后眼睛嘴巴被填成黑块的问题；体检报告会提示多备一卷深色料。"
+
+# 描摹网格：v7.17.1 1600→2400；v7.17.3 2400→3200（实测两张基准图 RMSE/强边双降；
+# 4000 在复杂图上 RMSE 反弹且耗时翻倍，故停在 3200）
+DEFAULT_GRID = 3200
+
+# v7.17.1：默认色数 112 -> 170。依据嘻嘻宝 312 样本（色数 p90=136）+ 实测
+# （天使 RMSE 10.23->9.89、复杂图 14.13->13.92，路径 +13%，细节不丢）。
+FUSION_COLORS = 170
 
 # 输出文件名统一前缀：本软件品牌名（Lumina 叠色打印 + 矢量 Vector 的缩写）。
 # 所有导出 SVG 一律以它开头，形如 LumVec-20261115_132501-anime.svg。
@@ -71,6 +108,16 @@ MODE_LABEL = {
     MODE_OWN_LAB: "自研 · 细线补缝（实验）",
     MODE_QQ3D: "保真还原 · qq3d 同款",
     MODE_GEOM: "几何化重绘 · 长圆弧大色块（实验）",
+    MODE_HYBRID: "高细节混合 · 墨线统一+长曲线（v7.7.0）",
+    MODE_SMOOTH: "平滑大色块 · 消除色斑碎线（v7.8.0）",
+    MODE_BANDS: "平滑色带 · 高清化+阴影自然（v7.11）",
+    MODE_FUSION: "准色平涂 · 完整线条无黑块（v7.16 自研，默认推荐）",
+    MODE_FLATSTYLE: "平涂长弧 · 嘻嘻宝风格（v7.17 自研，手动选）",
+    MODE_SILKY: "顺滑优先 · 合并小色块（v7.18 自研，牺牲细节换顺滑）",
+    MODE_SEGREGION: "区域分割重绘 · 4×画布平滑区成整块（v7.17.5 自研｜色准略降、慢）",
+    MODE_FACE_CLEAN: "脸部干净 · CNN 识别平滑区重取主色（v7.17.4 可选）",
+    MODE_LINENET: "CNN 线稿 · 识别线条热力图+矢量墨线叠加色块（v7.17.6 可选）",
+    MODE_XIXI: "嘻嘻宝平涂 · 硬边78色（v7.18.1 自研｜复杂图会丢细节）",
     MODE_SILK: "丝状顺滑 · 对标嘻嘻宝（v7.0）",
     MODE_SILK_CLEAN: "大色块背景 · 干净无碎斑（推荐用于深红/渐变背景）",
     MODE_SILK_PRINT: "可打印 · 按线宽清碎区（Lumina 叠色打印推荐）",
@@ -109,6 +156,9 @@ class Settings:
     hd: bool = False           # detail-preserving upscale before tracing
     hd_scale: float = 2.0      # 2x / 3x / 4x
     hd_strength: float = 0.5   # edge crispening strength 0..1
+    # 双超分融合（v7.6.1，auto 的 anime 分支自动开启）：aihd 洗色超分拿平滑几何，
+    # 描摹完成后用原图色板重映射补回正确颜色。见 fusion.py。
+    fusion: bool = False
 
     # 几何化重绘（MODE_GEOM）专用：大色块目标色数 / 曲线拟合容差 px
     geom_colors: int = 128
@@ -117,6 +167,16 @@ class Settings:
     geom_expand: float = 1.0
     # 同色描边遮缝宽度 px（Lumina 导入时剥离，只影响预览；0=关）
     geom_seam: float = 0.8
+
+    # 顺滑优先引擎（MODE_SILKY / v7.18）专用：相邻小色块归并强度
+    silky_strength: str = "medium"   # light(area80) / medium(area120,推荐) / strong(area240)
+
+    # v7.19.0 平涂浓度（fusion 线专用，default off = 保持原样）：
+    #   off    = 不动，170 色原样（保真线默认）
+    #   light  = 只并最接近的色阶（170→约 105 色），几乎无损
+    #   medium = 标准平涂（170→约 70 色），对标嘻嘻宝观感
+    #   strong = 更平（170→约 30~50 色），细节会明显减少
+    flat_level: str = "off"
 
     # 丝状顺滑引擎（MODE_SILK / v7.0）专用
     silk_colors: int = 128        # 感知量化色数（对标嘻嘻宝 79~116）
@@ -139,7 +199,7 @@ class Settings:
 
     def normalised(self) -> "Settings":
         s = Settings(**asdict(self))
-        if s.mode not in (MODE_CEL, MODE_HIFI, MODE_FLAT, MODE_WRAP, MODE_EXACT, MODE_PRINT, MODE_REF, MODE_REGION, MODE_PTRACE, MODE_LUMINA, MODE_SKETCH, MODE_OWN, MODE_OWN_LAB, MODE_QQ3D, MODE_GEOM, MODE_SILK, MODE_SILK_CLEAN, MODE_SILK_PRINT, MODE_AI_LINE, MODE_AUTO):
+        if s.mode not in (MODE_CEL, MODE_HIFI, MODE_FLAT, MODE_WRAP, MODE_EXACT, MODE_PRINT, MODE_REF, MODE_REGION, MODE_PTRACE, MODE_LUMINA, MODE_SKETCH, MODE_OWN, MODE_OWN_LAB, MODE_QQ3D, MODE_GEOM, MODE_HYBRID, MODE_SMOOTH, MODE_BANDS, MODE_FUSION, MODE_FLATSTYLE, MODE_SILKY, MODE_XIXI, MODE_FACE_CLEAN, MODE_SEGREGION, MODE_LINENET, MODE_SILK, MODE_SILK_CLEAN, MODE_SILK_PRINT, MODE_AI_LINE, MODE_LINEFIRST, MODE_AUTO):
             s.mode = MODE_LUMINA
         s.geom_colors = max(16, min(256, int(s.geom_colors)))
         s.geom_tol = max(0.5, min(6.0, float(s.geom_tol)))
@@ -173,6 +233,8 @@ class Settings:
             s.profile = "clean"
         if s.edge_smooth not in ("off", "soft", "normal", "strong"):
             s.edge_smooth = "normal"
+        if s.flat_level not in ("off", "light", "medium", "strong", "auto"):
+            s.flat_level = "auto"
         s.hd_scale = max(1.25, min(4.0, float(s.hd_scale)))
         s.hd_strength = max(0.0, min(1.0, float(s.hd_strength)))
         return s
@@ -485,6 +547,76 @@ def _merge_svg_colours(svg: str, target: int, source=None) -> str:
     return out
 
 
+# ── L2 色块边界的最短段（v7.17.15） ──────────────────────────────────
+# L2 是「沿色块交界画一圈墨线」。细节密集的图（发丝、布料褶皱、背景纹理）
+# 在边界图上表现为大量互不相连的短碎线，一段一段全画出来 → 段数暴涨
+# （实测动漫特写 c041 有 1239 段，其中 64% 短于 20 像素），画面变脏、体积变大。
+# 注意：黄墙（photo_flat）的「541 段」是**色带条数**，不是 L2 边界段数
+# （它的 L2 只有 78 段），那个属于「真色阶」问题，见 gradfill.py 的说明。
+#
+#   LN2_MIN_LEN      正常图的最短段（网格单位）。调大＝更多短线被丢掉，
+#                    画面更干净但小轮廓（眼睛高光边）会消失；调小＝细节全留、脏。
+#   LN2_TEX_FRAC     纹理判定门槛：边界像素占全图比例超过它就算「细纹理图」。
+#                    调大（0.04）＝几乎不触发；调小（0.01）＝普通图也被当纹理。
+#   LN2_TEX_MIN_LEN  纹理图用的最短段。调大＝纹理线去掉更多、更干净；
+#                    调小＝更接近正常图，纹理重新冒出来。
+LN2_MIN_LEN = 10
+LN2_TEX_FRAC = 0.02
+LN2_TEX_MIN_LEN = 28
+
+# ── 按色块大小自适应补缝（v7.17.15） ────────────────────────────────
+# 补缝描边＝沿每个色块边缘画一圈同色线，把相邻色块之间的白头发丝盖住。
+# 统一宽度对三类块的效果完全不同：
+#   · 大色块（天空、墙面、头发）—— 边界长、spline 拟合误差累积得多，缝更宽，
+#     需要略粗的描边才盖得住；
+#   · 中等块 —— 0.7px 刚好；
+#   · 比描边本身还窄的碎条/发丝 —— 一圈同宽描边等于给它套粗边框，
+#     细线胖一圈、小高光被吃掉。
+# 所以按每条 path 包围盒的两个边分三档给宽度（不是按「细就减」——缝的绝对
+# 宽度不会因为块小而变窄，减太狠反而漏缝，这一点实测过）。
+#
+#   SEAM_ADAPT      开关。开＝按块大小分档；关＝所有 path 同一宽度（v7.17.14 行为）
+#   SEAM_MID_GAIN   大块档 ×1.35。调大（1.6）＝大色块边缘盖得更死，但整体线条更粗、
+#                   小细节被吃掉；调小（1.1）＝线条更细，大块边缘可能重新露缝。
+#   SEAM_TINY_GAIN  碎条档 ×0.6。调大（0.8）＝碎条描边更粗、缝隙盖得更牢，
+#                   但发丝会糊；调小（0.4）＝发丝保持纤细，缝可能回来。
+#   SEAM_MID_SIDE   大块门槛：包围盒长边 > 300 网格单位算大块。
+#                   调大（500）＝只有特别大的块才加粗；调小（150）＝中等块也加粗。
+#   SEAM_TINY_SIDE  碎条门槛：最窄边 < 2×描边宽 算碎条。调大＝更多块被减细。
+SEAM_ADAPT = True
+SEAM_MID_GAIN = 1.35
+SEAM_TINY_GAIN = 0.6
+SEAM_MID_SIDE = 300.0
+SEAM_TINY_SIDE = 2.0
+
+_NUM_RE = re.compile(r"-?\d+(?:\.\d+)?|\.\d+")
+
+
+def _path_min_side(attrs: str):
+    """从 path 的 d 里估算包围盒最窄边（与 d 同单位）。
+
+    只认绝对坐标（大写命令）。出现小写命令说明有相对坐标，直接返回 None
+    让调用方退回固定宽度——宁可粗一点，也不能按错误尺寸乱缩。
+    """
+    m = re.search(r'\bd="([^"]*)"', attrs)
+    if not m:
+        return None
+    d = m.group(1)
+    letters = re.findall(r"[A-Za-z]", d)
+    if not letters or any(c.islower() for c in letters):
+        return None
+    nums = [float(v) for v in _NUM_RE.findall(d)]
+    if len(nums) < 4:
+        return None
+    xs, ys = nums[0::2], nums[1::2]
+    n = min(len(xs), len(ys))
+    if n < 2:
+        return None
+    bw = max(xs[:n]) - min(xs[:n])
+    bh = max(ys[:n]) - min(ys[:n])
+    return min(bw, bh), max(bw, bh)
+
+
 def _add_seam_strokes(svg: str, width: float) -> str:
     def repl(m):
         attrs = m.group(1)
@@ -494,8 +626,20 @@ def _add_seam_strokes(svg: str, width: float) -> str:
         if not f:
             return m.group(0)
         c = f.group(1)
+        w = width
+        if SEAM_ADAPT and width > 0:
+            sp = _path_min_side(attrs)
+            if sp is not None:
+                short, long_ = sp
+                if short < SEAM_TINY_SIDE * width:
+                    w = width * SEAM_TINY_GAIN
+                elif long_ > SEAM_MID_SIDE:
+                    # 宽度越细，加粗越保守：flat 模式的 gap_width 只有 0.8 网格
+                    # 单位（≈0.3 显示像素），直接 ×1.35 会让墙面细色阶「显形」
+                    # （实测黄墙 233→338 条）。按 width/2.5 线性淡入。
+                    w = width * (1.0 + (SEAM_MID_GAIN - 1.0) * min(1.0, width / 2.5))
         return (
-            f'<path{attrs} stroke="{c}" stroke-width="{width}" '
+            f'<path{attrs} stroke="{c}" stroke-width="{round(w, 2)}" '
             f'stroke-linejoin="round" stroke-linecap="round"/>'
         )
 
@@ -715,8 +859,13 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
     t0 = time.time()
 
     def step(msg):
+        # v7.15.0：进度打印失败绝不能中断转换。实测 silkprint 档文案含 '²'，
+        # GBK 控制台下 print 抛 UnicodeEncodeError 会让整条转换失败。
         if progress:
-            progress(msg)
+            try:
+                progress(msg)
+            except Exception:
+                pass
 
     if not os.path.isfile(src):
         raise FileNotFoundError(src)
@@ -776,6 +925,163 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
 
     im = load_rgb(src)
 
+    if s.mode == MODE_FLATSTYLE:
+        # v7.17.0 自研平涂长弧风格引擎（flatstyle.py）：把厚涂渐变压成大色块，
+        # 再用共边 L/A/Q 长弧描摹，得到嘻嘻宝那种「平涂+平滑边缘」风格。
+        # 引擎内部自带 2× 高清化，在通用 hd 处理之前早返回，避免双重超分。
+        step("平涂长弧风格引擎（自研 · 嘻嘻宝风格）…")
+        import flatstyle as _fs
+        _c = int(s.colors) if "colors" in (s.explicit or ()) else 112
+        res = _fs.trace(np.asarray(im), colors=_c, progress=step)
+        with io.open(dst, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(res["svg"])
+        return dict(src=src, dst=dst, mode=s.mode,
+                    grid="%dx%d" % (res["w"], res["h"]),
+                    colors=res["colors"], paths=res["paths"],
+                    hd="2.0x", bytes=os.path.getsize(dst),
+                    seconds=round(time.time() - t0, 1))
+
+    if s.mode == MODE_FUSION:
+        # v7.16.0 准色平涂融合引擎（flatfill.py，完全自研）：
+        # OKLab 色度加权量化（本地 color.py）+ cutout/spline 描摹（本地
+        # core._ref_kwargs/_vtrace）+ 自研色板吸附（近似色压回平涂）+
+        # 本地同色补缝。根治 v7.11 bands 引擎在浅色横纹插画（喷火龙腹部）
+        # 上出现纯黑块的缺陷。
+        # v7.15 曾临时用复制的 fusion_flat + clean_layers，v7.16 起改为
+        # 完全自研的 flatfill（零复制搬运，行为等价、纯黑 path=0）。
+        step("准色平涂融合引擎（自研 · 无黑块 + 完整线条）…")
+        import flatfill as _ff
+        # v7.17.2 修：原来这里写死 112，auto 走 classify 给的 170 色被直接丢掉
+        # （classify 不写 explicit，所以永远落到 else 112）——v7.17.1 文档宣称的
+        # 「170 色」在 auto 下其实没生效。改为默认取 FUSION_COLORS(170)，
+        # 用户在 GUI/CLI 显式指定 colors 时仍然优先用用户值。
+        _c = int(s.colors) if "colors" in (s.explicit or ()) else FUSION_COLORS
+        _sc = float(s.hd_scale) if "hd" in (s.explicit or ()) else (
+            1.0 if s.hd is False else 2.0)
+        res = _ff.trace(src, dst, colors=_c, hd_scale=_sc,
+                        grid=DEFAULT_GRID, progress=step,
+                        flat_level=getattr(s, "flat_level", "off"))
+        return dict(src=src, dst=dst, mode=s.mode, grid="%d (fusion)" % DEFAULT_GRID,
+                    colors=res["colors"], paths=res["paths"],
+                    hd=res.get("hd", ""), bytes=res["bytes"],
+                    seconds=round(time.time() - t0, 1))
+
+    if s.mode == MODE_LINEFIRST:
+        # v7.21.0 全新独立引擎（linefirst.py）：先定线后填色。
+        # CNN 线稿钉成墙 → 自适应种子分水岭（纹理区切网眼、平滑区成大块）
+        # → 每区按明暗分色阶取原图色 → vtracer 描摹 + 三层线稿叠加。
+        # 对标别人工具的干净平涂（规整网袜 + 大色块明暗过渡）。全自动无开关。
+        step("先定线后填色引擎（全新 · 规整网眼 + 明暗色阶）…")
+        import linefirst as _lf
+        res = _lf.trace(src, dst, progress=step,
+                        colors=int(s.colors) if "colors" in (s.explicit or ()) else 0)
+        return dict(src=src, dst=dst, mode=s.mode,
+                    grid=res.get("grid", "%d (linefirst)" % res.get("regions", 0)),
+                    colors=res["colors"], paths=res["paths"],
+                    hd="", bytes=res["bytes"], seconds=res["seconds"],
+                    regions=res.get("regions", 0),
+                    boundary_paths=res.get("boundary_paths", 0),
+                    printcheck=res.get("printcheck"))
+
+    if s.mode == MODE_SEGREGION:
+        # v7.17.5 引擎级重写（segregion.py）：先 4x 区域分割、每区域用原图取主色，
+        # 平滑区天然成整块（脸颊不杂），但色准略降、耗时较长。默认 auto 不变。
+        step("区域分割重绘引擎（4x 画布 · 平滑区成整块）…")
+        import segregion as _sg
+        res = _sg.trace(src, dst, progress=step)
+        return dict(src=src, dst=dst, mode=s.mode,
+                    grid="%d (segregion 4x)" % res["regions"],
+                    colors=res["colors"], paths=res["paths"],
+                    hd=res.get("hd", ""), bytes=res["bytes"],
+                    seconds=res["seconds"])
+
+    if s.mode == MODE_FACE_CLEAN:
+        # v7.17.4 新增的可选模式：fusion 管线 + CNN 识别平滑区 → 整片重取主色。
+        # 只动高置信平滑区（脸颊/下巴/阴影），五官/发丝/轮廓原样保留。
+        # 默认 auto 引擎不变（仍是 MODE_FUSION），这是给用户手动选的模式。
+        step("脸部干净引擎（fusion + CNN 平滑区重取色）…")
+        import flatfill as _ff
+        _c = int(s.colors) if "colors" in (s.explicit or ()) else FUSION_COLORS
+        _sc = float(s.hd_scale) if "hd" in (s.explicit or ()) else (
+            1.0 if s.hd is False else 2.0)
+        res = _ff.trace(src, dst, colors=_c, hd_scale=_sc,
+                        grid=DEFAULT_GRID, progress=step, face_clean=True)
+        return dict(src=src, dst=dst, mode=s.mode,
+                    grid="%d (faceclean)" % DEFAULT_GRID,
+                    colors=res["colors"], paths=res["paths"],
+                    hd=res.get("hd", ""), bytes=res["bytes"],
+                    seconds=round(time.time() - t0, 1))
+
+    if s.mode == MODE_LINENET:
+        # v7.17.6 新增：复刻 $Bug$ 路线——CNN 识别线条热力图 → Steger 亚像素提线
+        # → 矢量墨线叠加到干净色块底图上。底图复用 faceclean（fusion + CNN 平滑区
+        # 重取色，脸颊干净），线层由 linenet_line.py 独立推理。默认 auto 不变。
+        step("CNN 线稿引擎（干净色块底 + CNN 矢量墨线）…")
+        import flatfill as _ff
+        _c = int(s.colors) if "colors" in (s.explicit or ()) else FUSION_COLORS
+        # 固定 1:1 画布：线稿 mask 坐标 = SVG viewBox 坐标，墨线直接对齐色块。
+        _sc = 1.0
+        res = _ff.trace(src, dst, colors=_c, hd_scale=_sc,
+                        grid=DEFAULT_GRID, progress=step, face_clean=True,
+                        return_index=True)
+        st = dict(src=src, dst=dst, mode=s.mode,
+                  grid="%d (linenet)" % DEFAULT_GRID,
+                  colors=res["colors"], paths=res["paths"],
+                  hd=res.get("hd", ""), bytes=res["bytes"],
+                  seconds=round(time.time() - t0, 1))
+        return _apply_linenet(s, src, dst, st, progress=step,
+                              index=res.get("index"), pal=res.get("palette"))
+
+    if s.mode == MODE_XIXI:
+        # v7.18.1 自研「嘻嘻宝平涂」风格引擎（xixistyle.py）。
+        # 规格取自 312 个嘻嘻宝样本中位值：78 色 / 每色约 56 块 / Q+A 长弧 69% /
+        # 每区域一条填充 + 一条同色描边（描边宽 = 画布宽 0.08%，按画布归一化）。
+        # 这是「重绘成平涂」而非保真转换：简单图干净清脆，复杂图会明显丢细节。
+        step("嘻嘻宝平涂风格引擎（自研 · 78 色 + 长弧 + 同色描边）…")
+        import xixistyle as _xs
+        _c = int(s.colors) if "colors" in (s.explicit or ()) else _xs.XIXI_COLORS
+        res = _xs.trace(np.asarray(im), colors=_c, grid=DEFAULT_GRID, progress=step)
+        svg = _set_root(res["svg"], res["w"], res["h"],
+                        im.width / max(1, res["w"]), "xixi flat style")
+        with io.open(dst, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(svg)
+        if res.get("warning"):
+            step("提示：%s" % res["warning"])
+        return dict(src=src, dst=dst, mode=s.mode, grid="%d (xixi)" % res["w"],
+                    colors=res["colors"], paths=res["paths"],
+                    hd="", bytes=os.path.getsize(dst),
+                    seconds=round(time.time() - t0, 1))
+
+    if s.mode == MODE_SILKY:
+        # v7.18.0 自研顺滑优先引擎（silky.py）：
+        # 在 fusion 的 OKLab 量化之后、描摹之前，插入「五官钉色 + 近色加权归并」，
+        # 把相邻小碎色块并给最像的大邻居 -> 线条/色块/边缘更顺滑；代价是牺牲细节。
+        # 五官（瞳孔/高光/睫毛附近）用钉黑钉白保护，归并时只许同色合并。
+        step("顺滑优先引擎（自研 · 合并小色块换顺滑）…")
+        import silky as _sy
+        _c = int(s.colors) if "colors" in (s.explicit or ()) else 112
+        _sc = float(s.hd_scale) if "hd" in (s.explicit or ()) else (
+            1.0 if s.hd is False else 2.0)
+        _st = str(getattr(s, "silky_strength", "medium") or "medium")
+        res = _sy.trace(src, dst, colors=_c, hd_scale=_sc, strength=_st, progress=step)
+        return dict(src=src, dst=dst, mode=s.mode, grid="%d (silky)" % 1600,
+                    colors=res["colors"], paths=res["paths"],
+                    hd=res.get("hd", ""), bytes=res["bytes"],
+                    seconds=round(time.time() - t0, 1))
+
+    if s.mode == MODE_HYBRID and "hd" not in (s.explicit or ()):
+        s.hd = False   # 混合引擎自带亚像素拟合，默认不放大（速度）；显式 --hd 仍尊重
+
+    if s.mode == MODE_SMOOTH and "hd" not in (s.explicit or ()):
+        s.hd = False   # 平滑大色块引擎内部自带工作网格缩放，默认不额外超分；显式 --hd 仍尊重
+
+    if s.mode == MODE_BANDS and "hd" not in (s.explicit or ()):
+        # v7.11：用户实测"糊"。原因有二：①旧版把工作网格死钉 1600，1400+ 宽的
+        # 原图被降采样、小图只是插值放大；②没走高清明亮化。现在按原分辨率工作，
+        # 并对小图做自适应高清化（1600~2100 宽），不再二次损失。
+        s.hd = True
+        s.hd_scale = 1.6 if im.width < 1300 else (1.35 if im.width < 1750 else 1.0)
+
     if s.hd:
         if _hd_enhance is None:
             raise RuntimeError("高清化模块不可用（enhance.py 缺失）")
@@ -830,6 +1136,68 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
         step("完成 %d 层" % res["paths"])
         return {"paths": res["paths"], "bytes": len(res["svg"]),
                 "colors": res["colors"], "mode": s.mode, "ms": res["ms"]}
+
+    if s.mode == MODE_HYBRID:
+        # v7.7.0 自研混合引擎：own_tracer 墨线统一（unify_ink_cc）把发丝/眼线
+        # 连成连续顶层 + 墨线层用 geom 长曲线 L/A/Q/C 拟合；大色块走角点切分
+        # 快速拟合（速度优化）。默认 256 色、原尺寸不降采样。详见 HANDOFF §27。
+        step("高细节混合引擎（墨线统一 + 长曲线拟合）…")
+        import hybrid_tracer as _ht
+        _c = int(s.colors) if "colors" in (s.explicit or ()) else 256
+        _arr = np.asarray(im)
+        res = _ht.trace(_arr, colors=_c, detail=int(s.detail), progress=step)
+        with io.open(dst, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(res["svg"])
+        return dict(src=src, dst=dst, mode=s.mode,
+                    grid="%dx%d" % (im.width, im.height),
+                    colors=res["layers"], hd="", paths=res["subpaths"],
+                    bytes=os.path.getsize(dst), seconds=round(time.time() - t0, 1),
+                    ink_layers=res["ink_layers"])
+
+    if s.mode == MODE_SMOOTH:
+        # v7.8.0 自研平滑大色块引擎：平滑区(皮肤/背景)统一主色消色斑，
+        # 细节区(发丝/晶体)保留，全部边界 L/A/Q 长弧拟合。见 HANDOFF §28。
+        step("平滑大色块引擎（消色斑 + 长弧）…")
+        import smooth_tracer as _st
+        _c = int(s.colors) if "colors" in (s.explicit or ()) else 110
+        _arr = np.asarray(im)
+        res = _st.trace(_arr, colors=_c, detail=int(s.detail), progress=step)
+        with io.open(dst, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(res["svg"])
+        return dict(src=src, dst=dst, mode=s.mode,
+                    grid="%dx%d" % (im.width, im.height),
+                    colors=res["layers"], hd="", paths=res["subpaths"],
+                    bytes=os.path.getsize(dst), seconds=round(time.time() - t0, 1),
+                    smooth_ratio=res["smooth_ratio"],
+                    gradient_ratio=res.get("gradient_ratio", 0.0))
+
+    if s.mode == MODE_BANDS:
+        # v7.10.0 自研色带引擎：渐变画成平滑色带（不是一块主色），边界用
+        # 距边缘自适应模糊 + 空间投票走等值线；碎块并入近邻但保留高对比小点；
+        # 每块颜色取原图区域均值。见 HANDOFF §30 / band_tracer.py。
+        step("色带引擎（平滑色带 + 保阴影）…")
+        import band_tracer as _bt
+        _c = int(s.colors) if "colors" in (s.explicit or ()) else 96
+        _arr = np.asarray(im)
+        # v7.10.1：工作网格 1200→1600，细线从 1px 变 2px 以上；几何容差 1.0、
+        # 转角 45°、轮廓 Chaikin 1 次，避免像素阶梯被切成短 L/Q 段。
+        # v7.11：改为「按高清化后的原生分辨率」描摹（grid=0），超 2600 才降采样；
+        # 取色改 core（细区域用核心色，描边不再被抗锯齿洗淡）。中值滤波保留：
+        # 关掉后 JPEG 源的颗粒会直接变成皮肤上的粉点（m1467 实测），得不偿失。
+        res = _bt.trace(_arr, colors=_c, detail_colors=32,
+                        edge_thr=0.25, highlight_l=0.88,
+                        palette_mode="core", blur_sigma=13.0, vote_sigma=3.0,
+                        grid=(0 if im.width <= 2600 else 2600),
+                        poly_eps=1.0, corner_deg=45.0,
+                        contour_smooth=1, denoise=True, progress=step)
+        with io.open(dst, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(res["svg"])
+        return dict(src=src, dst=dst, mode=s.mode,
+                    grid="%dx%d" % (res.get("width", im.width), res.get("height", im.height)),
+                    colors=res["layers"],
+                    hd=("%.2gx" % s.hd_scale) if s.hd else "",
+                    paths=res["subpaths"],
+                    bytes=os.path.getsize(dst), seconds=round(time.time() - t0, 1))
 
     if s.mode == MODE_GEOM:
         # 几何化重绘（共边引擎）：硬标签量化 → 区域规整 → 共享像素边界等值线
@@ -973,22 +1341,32 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
 
         _work = src
         _hd_tmp = None
+        _fusion_ok = False
         if s.hd:
             try:
-                # v7.5.7: 超分从 Real-ESRGAN (aihd) 换成颜色安全的 enhance 同款
-                # 「只补模糊、不动原色」超分。实测 Real-ESRGAN 会把饱和度压掉
-                # ~20%、亮度压低 ~5%（原图 0.384 → 0.305），导致动漫/照片图
-                # 转 SVG 后整体发淡；enhance 同款 2× 后饱和度 0.384 → 0.383，
-                # 几乎零损失且仍保留 2× 细节。
-                if _hd_enhance is None:
-                    raise RuntimeError("高清化模块不可用（enhance.py 缺失）")
                 from PIL import Image as _Img
-
                 _sc = max(1.25, float(s.hd_scale or 2.0))
-                step("高清化 %.1f×（保色，不洗淡）…" % _sc)
-                with _Img.open(src) as _im:
-                    _big = _hd_enhance(_im.convert("RGB"), scale=_sc,
-                                       strength=0.0, denoise=1.0)
+                if getattr(s, "fusion", False):
+                    # 双超分融合：用旧 Real-ESRGAN (aihd) 洗色超分。它把图"洗平滑"
+                    # → 描摹碎片少、边缘顺；洗掉的颜色随后由 fusion.recolor_svg 用
+                    # 原图色板补回。二者兼得（见 fusion.py 模块文档）。
+                    import aihd as _aihd
+                    if not _aihd.available():
+                        raise RuntimeError("aihd 洗色超分不可用（模型缺失）")
+                    step("洗色超分 %.1f×（融合几何，颜色随后补回）…" % _sc)
+                    with _Img.open(src) as _im:
+                        _big, _ = _aihd.preprocess(
+                            _im.convert("RGB"), target_scale=_sc,
+                            max_pixels=5_000_000, grain=True)
+                    _fusion_ok = True
+                else:
+                    # 默认保色超分：只补模糊、不动原色，避免动漫/照片整体发淡。
+                    if _hd_enhance is None:
+                        raise RuntimeError("高清化模块不可用（enhance.py 缺失）")
+                    step("高清化 %.1f×（保色，不洗淡）…" % _sc)
+                    with _Img.open(src) as _im:
+                        _big = _hd_enhance(_im.convert("RGB"), scale=_sc,
+                                           strength=0.0, denoise=1.0)
                 # vtracer 按超分后尺寸描摹；超过 500 万像素则回缩，避免路径数 /
                 # 内存暴涨（与旧 aihd 5M 上限一致）。
                 _cap = 5_000_000
@@ -1003,20 +1381,29 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
                 _work = _hd_tmp
             except Exception as exc:  # noqa: BLE001
                 step("高清化跳过（%s）" % exc)
+                _fusion_ok = False
 
         try:
-            # v7.6.1 画质参数（从桌面版 backport，2026-11-16）：
-            # 保色超分 + case7 描摹参数（color_precision=8 / layer_diff=8 /
-            # corner=86 / filter_speckle=4）。实测同一张高细节插画：
-            # 旧参数脸发灰、发丝糊成浅色一片；case7 后脸部不发灰、镜框更黑、
-            # 发丝层次清楚。颜色随后由 _merge_svg_colours 收束到 256 色大色块。
-            # 不引入任何模型或二进制（模块 backend 为 text-only）。
-            _vtrace(
-                _work, dst,
-                clustering="color", hierarchical="cutout", mode="spline",
-                filter_speckle=4, color_precision=8, layer_difference=8,
-                corner_threshold=86, length_threshold=3.0,
-                max_iterations=10, splice_threshold=45, path_precision=2)
+            if _fusion_ok:
+                # 融合描摹参数（实测 case7）：大色块 + 共边 + 高角点阈值，
+                # stroke 后 jagged≈33，最接近 v7.5 平滑几何。
+                _vt_kwargs = dict(
+                    clustering="color", hierarchical="cutout", mode="spline",
+                    filter_speckle=4, color_precision=8, layer_difference=8,
+                    corner_threshold=86, length_threshold=3.0,
+                    max_iterations=10, splice_threshold=45, path_precision=2)
+            else:
+                layer = int(max(4, round(14 - s.colors / 20.0)))
+                # fidelity first: tiny specks and short segments survive, colours are
+                # collapsed afterwards by _merge_svg_colours, which keeps hairlines
+                _vt_kwargs = dict(
+                    clustering="color", hierarchical="cutout", mode="spline",
+                    filter_speckle=int(max(1, 4 - s.detail // 3)),
+                    color_precision=int(min(8, 5 + s.detail // 2)), layer_difference=layer,
+                    corner_threshold=int(max(55, 88 - s.detail * 2)),
+                    length_threshold=float(max(1.5, 3.2 - s.detail * 0.16)),
+                    max_iterations=10, splice_threshold=45, path_precision=2)
+            _vtrace(_work, dst, **_vt_kwargs)
         finally:
             if _hd_tmp:
                 try:
@@ -1040,7 +1427,8 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
         # collapse near-identical colours: shapes keep their detail, the palette
         # is brought back to the requested colour count
         try:
-            txt = _merge_svg_colours(txt, int(s.colors), _work)
+            # 融合固定 256 色：大色块 → 每个 fill 覆盖区够大 → 重映射零漏。
+            txt = _merge_svg_colours(txt, 256 if _fusion_ok else int(s.colors), _work)
         except Exception:  # noqa: BLE001
             pass
         try:
@@ -1082,6 +1470,22 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
                     txt = txt[:_root.end()] + _rect + txt[_root.end():]
         except Exception:  # noqa: BLE001
             pass
+        _fusion_info = None
+        if _fusion_ok:
+            try:
+                import fusion as _fusion
+                if _fusion.available():
+                    step("双超分融合：原图色板重映射（只换 fill，保留 stroke）…")
+                    txt, _fusion_info = _fusion.recolor_svg(txt, src)
+                    step("融合完成：%d/%d 色重映射（漏 %d）"
+                         % (_fusion_info.get("mapped", 0), _fusion_info.get("total", 0),
+                            _fusion_info.get("missed", 0)))
+                else:
+                    step("融合跳过：resvg_py 渲染依赖不可用，保留洗色几何原色")
+                    _fusion_ok = False
+            except Exception as exc:  # noqa: BLE001
+                step("融合重映射跳过（%s）；保留洗色几何原色" % exc)
+                _fusion_ok = False
         io.open(dst, "w", encoding="utf-8", newline="\n").write(txt)
         step("vtracer 完成（%d 路径）" % paths)
         if s.straighten:
@@ -1104,9 +1508,23 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
         return dict(src=src, dst=dst, mode=s.mode, grid="", colors=s.colors,
                     hd=("%dx%d" % (_big.width, _big.height)) if _hd_tmp else "",
                     paths=paths, bytes=os.path.getsize(dst),
+                    fusion=bool(_fusion_ok and _fusion_info),
+                    fusion_info=_fusion_info,
                     seconds=round(time.time() - t0, 1))
 
     if s.mode == MODE_PTRACE:
+        # v7.15.0：v7.7 起 potrace.exe 不再随包分发（GPL-2.0），该档位实测
+        # 直接报错退出。没有外部可执行文件时优雅回落到 ref 引擎，保证
+        # GUI 里任何档位都不会"点了没反应"。
+        try:
+            from ptr import find_potrace as _find_potrace
+        except Exception:
+            _find_potrace = None
+        if not (_find_potrace and _find_potrace()):
+            step("potrace.exe 不可用，回落到 ref 引擎…")
+            s.mode = MODE_REF
+            return _convert_impl(src, dst, s, progress)
+
         # 参考文件都是「先高清化，再描摹」：放大 + 边界锐化后再切色块，
         # 边缘才会像 家教纲吉.svg / P5合集.svg 那样干净。
         from enhance import enhance as _enh
@@ -1251,6 +1669,151 @@ def _convert_impl(src: str, dst: str, settings: Settings | None = None,
     )
     step("完成")
     return info
+
+
+def _apply_linenet(s: "Settings", src: str, dst: str, st: dict,
+                   progress=None, index=None, pal=None) -> dict:
+    """v7.17.7: 按 $Bug$ 的分层结构给色块图加线（L0 暗墨 + L1 彩线 + L2 色块边界）。
+
+    - L2 色块边界：沿色块之间的边界描线，几何与色块边缘天然吻合，
+      再用 OKLab ΔE 门控（de_min=0.10）滤掉柔和渐变的量化台阶——
+      否则柔光图会被勾成一圈圈等高线。
+    - L0/L1 CNN 墨线：从原图推理线稿，按每条线段原图色分暗墨/彩线着色。
+    - 去重：CNN 线若已压在色块边界上就交给 L2，只保留分割没覆盖到的细节线。
+
+    实测（3200 网格 / 96~112 色）：CNN 线与色块边界重合 76~88%，说明这一管线
+    里「线」的主体本来就在分割里；CNN 的增量是同色区内部的发丝/褶皱线。
+
+    线稿坐标是原图像素，底图 viewBox 是 flatfill 的网格坐标，用 scale 对齐。
+    任何一步失败都优雅跳过，底图 SVG 原样保留。
+    """
+    try:
+        import linenet_line as _ln
+    except Exception as exc:  # noqa: BLE001
+        st["linenet"] = "import_failed:%s" % exc
+        return st
+    if not _ln.available():
+        st["linenet"] = "model_missing"
+        return st
+    try:
+        from PIL import Image as _I
+        with _I.open(src) as _im:
+            _rgb = np.asarray(_im.convert("RGB"))
+        oh, ow = _rgb.shape[:2]
+
+        # 1) 读底图 viewBox，算原图→viewBox 的缩放比
+        txt = io.open(dst, encoding="utf-8").read()
+        m = re.search(r'viewBox="0\s+0\s+([\d.]+)\s+([\d.]+)"', txt)
+        if m:
+            vb_w, vb_h = float(m.group(1)), float(m.group(2))
+        else:
+            m2 = re.search(r'width="([\d.]+)"\s+height="([\d.]+)"', txt)
+            if not m2:
+                st["linenet"] = "no_viewbox"
+                return st
+            vb_w, vb_h = float(m2.group(1)), float(m2.group(2))
+        sx, sy = vb_w / max(ow, 1), vb_h / max(oh, 1)
+
+        # 2) CNN 推理 → 线概率热力图（原图尺寸），再 Steger 提线
+        heat = _ln.heatmap(_rgb, progress=progress)
+        mask = _ln.steger_lines(heat)
+
+        # 3) L2 色块边界 = ΔE 门控 ∪ 热力图软约束（两者互补，见 heat_gate 注释）
+        #    ΔE 单独用会在淡彩图上失效（实测某图只出 203 段，五官全漏），
+        #    补上热力图后升到 323 段；强对比图上热力图不额外引入噪声。
+        seg_b, nbound = "", 0
+        if index is not None and pal is not None:
+            _bb = _ln.strong_boundary(index, pal, de_min=0.10)
+            _gt = _ln.heat_gate(heat, index.shape, thr=0.30)
+            # 纹理图判定：边界像素占比过高说明这是颗粒/砖墙/草地这类细纹理，
+            # 短碎线全部画出来只会变脏（见 LN2_* 常量处的说明）。
+            _ln2_ml = (LN2_TEX_MIN_LEN if float((_bb | _gt).mean()) >= LN2_TEX_FRAC
+                       else LN2_MIN_LEN)
+            st["linenet_de_px"] = int(_bb.sum())
+            st["linenet_gate_px"] = int(_gt.sum())
+            _bb = _bb | _gt
+            # 轮廓默认走骨架中线（v7.17.9）。v7.17.9 之前是描 1px 带的两侧轮廓，
+            # 同一条线走两趟：path 数翻倍、点数翻倍，还容易在细线处留下白边。
+            if getattr(_ln, "USE_CENTERLINE", True):
+                # 线宽 +1.0：旧版是「1 px 带轮廓 + 1.6 描边」≈ 2.6 网格宽，
+                # 中线要补回那 1 px 才对得上原来的墨量（实测 2.4 略细、2.8 略粗）。
+                seg_b, nbound = _ln.stroke_svg_center(
+                    _bb, stroke_width=max(1.0, vb_w * 0.0005) + 1.0,
+                    color="#141414", min_len=_ln2_ml, eps=0.8)
+            else:
+                seg_b, nbound = _ln.stroke_svg(
+                    _bb, stroke_width=max(1.0, vb_w * 0.0005),
+                    color="#141414", min_size=12)
+            st["linenet_bound_paths"] = nbound
+            st["linenet_bound_frac"] = round(float(_bb.mean()), 4)
+
+        # 4) CNN 墨线去重：压在已画边界（含热力图补的门控边界）上就交给 L2，
+        #    避免同一条轮廓被画两遍发脏；只留分割完全没覆盖的细节线。
+        if index is not None and mask.any():
+            _bm = _ln.to_size(_bb, (ow, oh)) if nbound else None
+            _mk = _ln.filter_small(mask & ~_bm, 8) if _bm is not None else mask
+            if _mk.any():
+                st["linenet_dedup"] = round(
+                    1.0 - float(_mk.sum()) / max(1, int(mask.sum())), 3)
+            mask = _mk
+
+        # 5) L0 暗墨 + L1 彩线（原图坐标系，线宽换算成原图像素）
+        seg, npath, ngroup = ("", 0, 0)
+        if mask.any():
+            _sw = max(1.0, vb_w * 0.0005 / max(sx, 1e-6))
+            if getattr(_ln, "USE_CENTERLINE", True):
+                seg, npath, ngroup = _ln.build_centerline_svg(
+                    _rgb, mask, stroke_width=_sw, min_len=8, eps=0.8)
+            else:
+                seg, npath, ngroup = _ln.build_layered_svg(_rgb, mask, stroke_width=_sw)
+
+        if not seg and not seg_b:
+            st["linenet"] = "no_path"
+            return st
+
+        lines = ('<g transform="scale(%.6f %.6f)">\n%s</g>\n' % (sx, sy, seg)) if seg else ""
+        # 6) 底图压缩。v7.17.9 只做「d 坐标压整数」，v7.17.10 起再加两步：
+        #    a) 公共描边属性（每个 path 一份 stroke-width/linejoin/linecap）
+        #       提到根 <svg> 继承 —— 13000 个 path 就是 13000 份重复，逐像素无损；
+        #    b) d 里 38.8% 的 C 段其实是直线（vtracer 把直线写成三次贝塞尔），
+        #       共线判定后转 L/H/V 并合并连续直线。
+        #    v7.17.11 再加两步：折掉每个 path 的 transform="translate(x,y)"（整数
+        #    位移折进首个 M 点），并把绝对坐标全部改相对（整数 delta 精确无损）。
+        #    实测四图 6.72→2.86 / 10.25→4.86 / 5.49→2.54 / 13.01→5.85 MB（−25~28%），
+        #    相对 v7.17.10；累计自 v7.17.8 起 −57~63%。必须在插入线层之前做。
+        if getattr(_ln, "COMPACT_BASE", True):
+            try:
+                import pathopt as _po
+                _eps = getattr(_ln, "PATH_EPS", 0.30)
+                _tag = "attr" + ("+d(eps%.2f)" % _eps if _eps and _eps > 0 else "")
+                if getattr(_po, "FOLD_TRANSLATE", False):
+                    _tag += "+fold"
+                if getattr(_po, "RELATIVE", False):
+                    _tag += "+rel"
+                if _eps and _eps > 0:
+                    txt = _po.optimize(txt, eps=max(0.20, _eps * vb_w / 3200.0))
+                else:
+                    txt = _po.optimize(txt, eps=None, lift=True, dpath=False)
+                st["linenet_compact"] = _tag
+            except Exception as exc:  # noqa: BLE001  pathopt 异常时退回旧版整数化
+                txt = _ln.compact_coords(txt, 0)
+                st["linenet_compact"] = "fallback:%s" % type(exc).__name__
+        cut = txt.rfind("</svg>")
+        if cut < 0:
+            st["linenet"] = "no_svg_close"
+            return st
+        txt = txt[:cut] + seg_b + lines + txt[cut:]
+        io.open(dst, "w", encoding="utf-8", newline="\n").write(txt)
+        st["linenet_paths"] = npath
+        st["linenet_groups"] = ngroup
+        st["linenet_line_frac"] = round(float(mask.mean()), 4)
+        st["linenet"] = "ok"
+        # 加上线层后体积/路径数都变了，报告里必须给最终值（否则显示底图数值）
+        st["bytes"] = os.path.getsize(dst)
+        st["paths"] = count_paths(dst)
+    except Exception as exc:  # noqa: BLE001
+        st["linenet"] = "error:%s" % exc
+    return st
 
 
 def _apply_ai_line(s: "Settings", src: str, dst: str, st: dict) -> dict:

@@ -305,13 +305,15 @@ def merge_small(labels: np.ndarray, pal: np.ndarray, min_area: int = 60,
     与邻居颜色差很大的小高光/小细节会被保留（这是刻意的细节，不是噪点）。
     """
     from scipy import ndimage as ndi
-    from skimage import measure
     if iters <= 0:
         return labels
     out = labels.copy()
     labpal = _oklab_palette(pal)
+    _cross = ndi.generate_binary_structure(2, 1)   # 4 邻接，等价 measure.label(connectivity=1)
     for _ in range(iters):
-        reg = measure.label(out.astype(np.int32) + 1, connectivity=1)
+        # v7.19.0：去掉 skimage 依赖（打包环境里没有 scikit-image，xixi/flatstyle/smooth
+        # 会在这一步直接 ModuleNotFoundError）。scipy 的 label 同结构结果一致。
+        reg, _nl = ndi.label(out.astype(np.int32) + 1, structure=_cross)
         n = int(reg.max()) + 1
         area = np.bincount(reg.ravel(), minlength=n)
         edge = np.zeros(reg.shape, bool)

@@ -1,12 +1,17 @@
-"""Workshop backend for the img2svg v7.6.0 tracer.
+"""Workshop backend for the img2svg linefirst tracer (desktop v7.24 behaviour).
 
-The tracing code under ``img2svg_core`` is copied verbatim from the desktop
-project.  This file only adapts file-based I/O to the host task protocol and
-replaces the desktop's legacy native-binary fallback with a wheel-supplied
-vtracer 0.6 pass, because native executables cannot live under backend/.
+The tracing code under ``img2svg_core`` is copied from the desktop project
+(v7.26 source) with the linefirst constants pinned to v7.24: 160 colour bands,
+48 detail colours, no solid outline band, no embedded bitmap, no print check.
+That is the last desktop build before the 56-band / 2px-band experiment, and it
+still emits pure closed colour blocks, which is what 3D print slicing needs.
+
+This file only adapts file-based I/O to the host task protocol and replaces the
+desktop's legacy native-binary fallback with a wheel-supplied vtracer 0.6 pass,
+because native executables cannot live under backend/.
 
 Outputs:
-  * ``svg`` - the byte-exact layered SVG produced by the desktop pipeline.
+  * ``svg`` - the layered SVG produced by the desktop linefirst pipeline.
   * ``png`` - a rasterised preview of that SVG (NOT the source photo), used by
     the host as the compatible fallback when native SVG is unavailable.
   * ``meta`` - JSON with the SVG's pixel dimensions for handoff sizing.
@@ -33,10 +38,11 @@ backend = Backend()
 def _default_settings():
     import core
 
+    # 桌面 v7.24 的默认链路：先定线、后填色（linefirst），纯色块、不嵌位图。
+    # 色阶/细节色/线带开关都在 img2svg_core/linefirst.py 顶部常量里，
+    # 与桌面同源，避免两处参数各写一份。
     return core.Settings(
-        mode=core.MODE_LUMINA,
-        colors=256,
-        edge_smooth="strong",
+        mode=core.MODE_LINEFIRST,
         faithful_hd=True,
         hd=True,
         hd_scale=2.0,

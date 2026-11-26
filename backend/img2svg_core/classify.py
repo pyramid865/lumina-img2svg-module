@@ -357,9 +357,11 @@ CATEGORY_LABEL = {
 CATEGORY_ENGINE = {
     "line_art": core.MODE_SKETCH,
     "flat_icon": core.MODE_FLAT,
-    "anime": core.MODE_QQ3D,
+    # v7.17.1/v7.18.1：anime/photo 的默认引擎由构建开关决定
+    #   v7.17.x 保真线 = MODE_FUSION；v7.18.x 舍弃线 = MODE_SILKY
+    "anime": core.AUTO_MAIN_ENGINE,
     "architecture": core.MODE_LUMINA,
-    "photo": core.MODE_LUMINA,
+    "photo": core.AUTO_MAIN_ENGINE,
     "texture": core.MODE_QQ3D,
 }
 
@@ -398,29 +400,20 @@ def preset_for(category: str, features: dict | None = None) -> "core.Settings":
         return core.Settings(mode=core.MODE_FLAT, colors=24, grid_width=1600,
                              detail=6, gap=True, faithful_hd=False).normalised()
     if category == "anime":
-        # 默认走 lumina 256色 + 强边缘 + 保真高清：vtracer cutout 共边 + 样条拟合，
-        # 在 2× 超分上约 18s（qq3d 同图约 180s，慢一个数量级），且对丝袜/光滑暗区
-        # 更顺（qq3d256 在脚踝有方形硬边块，已实测）。qq3d 保真引擎保留给需要
-        # 极致渐变还原的场景，可在「引擎」下拉手动选。
-        # v7.5.1: hd=True 必须显式给 —— auto 会用本预设整体替换 GUI 设置，
-        # 之前只写了 faithful_hd（那是 qq3d 的开关），导致 lumina 没超分，
-        # 输出停在原尺寸、边缘全是像素阶梯锯齿。
-        return core.Settings(mode=core.MODE_LUMINA, colors=256,
-                             edge_smooth="strong", faithful_hd=True,
-                             hd=True, hd_scale=2.0).normalised()
+        # v7.17.1/v7.18.1：默认引擎由构建开关 AUTO_MAIN_ENGINE 决定
+        #   v7.17.x 保真线 = fusion（网格2400，不牺牲细节）
+        #   v7.18.x 舍弃线 = silky（合并小色块+边界平滑，网格2400）
+        # v7.17.1：色数 112 -> 170（嘻嘻宝样本 p90=136；实测 RMSE -3%，细节不丢）
+        return core.Settings(mode=core.AUTO_MAIN_ENGINE, colors=core.FUSION_COLORS,
+                             faithful_hd=False, hd=False).normalised()
     if category == "architecture":
         return core.Settings(mode=core.MODE_LUMINA, colors=128, detail=10,
                              smooth=1, straighten=True, faithful_hd=True,
                              hd=True, hd_scale=2.0).normalised()
     if category == "photo":
-        # 与 anime 一致走 lumina 256色 + 强边缘 + 保真高清：实测比 qq3d 更干净、
-        # 更快（qq3d 瓦片管线会在嘴角等边缘产生细线/拉丝伪影，且慢一个数量级），
-        # 对写实照片渐变同样平滑。需要极致还原可在「引擎」下拉手动选 qq3d。
-        # v7.5.1: 同 anime，补 hd=True 让超分真正生效（用户认可的 d926 好文件
-        # 就是 1677x2981 ≈ 1.86x 超分；之前 auto 丢失 hd 导致 900x1600 锯齿版）。
-        return core.Settings(mode=core.MODE_LUMINA, colors=256,
-                             edge_smooth="strong", faithful_hd=True,
-                             hd=True, hd_scale=2.0).normalised()
+        # v7.17.1/v7.18.1：与 anime 一致走构建开关指定的默认引擎。
+        return core.Settings(mode=core.AUTO_MAIN_ENGINE, colors=core.FUSION_COLORS,
+                             faithful_hd=False, hd=False).normalised()
     if category == "texture":
         return core.Settings(mode=core.MODE_QQ3D, colors=256, profile="detail",
                              edge_smooth="soft", faithful_hd=True,

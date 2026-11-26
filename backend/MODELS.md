@@ -1,4 +1,4 @@
-# 模型与依赖说明（v7.6.0 现状）
+# 模型与依赖说明（v7.24 linefirst 现状）
 
 **结论：`manifest.json` 不声明 `models[]`，这是正确且刻意的，不是遗漏。**
 
@@ -10,10 +10,17 @@ LANCZOS + 边缘调制）。`core.py` 里对应注释写明原因：Real-ESRGAN 
 饱和度压掉约 20%、亮度压低约 5%，导致转出的 SVG 整体发淡；换成保色算法后
 几乎零颜色损失，同时保留 2× 细节。
 
-因此默认画质链路只依赖 `numpy` / `Pillow` / `vtracer 0.6.15`，
-**不加载任何 ONNX 权重，也不需要 onnxruntime**。桌面项目 v7.5.6 起也已把
-PiDiNet、`anime.pth`、`vtracer10` 等权重与二进制全部移除（见
-`THIRD_PARTY_NOTICES.md`）。
+因此默认画质链路只依赖 `numpy` / `Pillow` / `vtracer 0.6.15`。
+2026-11 起工坊版换成桌面 v7.24 的 `linefirst` 引擎（先定线后填色），
+该引擎另外需要两个**纯计算**依赖：
+
+| 依赖 | 用途 |
+|---|---|
+| `opencv-python-headless` 5.1.0.95 | 调色板 k-means、Sobel 边缘、高斯投票、形态学、颜色空间转换 |
+| `scipy` 1.18.1 | `distance_transform_edt`（贴边自适应模糊）、`find_objects`（软投票包围盒） |
+
+它们都是预编译 wheel，安装时不需要编译器，也不含任何模型权重。
+`linefirst` 路径不会 import `skimage`（只有本模块从不调用的旧引擎才引用它）。
 
 `aihd.py` / `hd_faithful.py` 仍随算法核心保留，但只在 `faithful_hd` 的
 qq3d 分支里被引用，且 `hd_faithful.enhance()` 在模型不可用时明确

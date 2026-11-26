@@ -1,9 +1,15 @@
 # community.img2svg — Lumina Workshop 模块
 
-把桌面版「图片转 SVG」**v7.6.1** 的默认画质链路封装成 Workshop 后端模块
-（manifest v2 / Workshop API 1.1.0）。v0.1.2 起将 v7.6.1 的高细节描摹参数
-（case7：color_precision=8 / layer_difference=8 / corner_threshold=86）backport
-到模块，实测高细节插画的发丝、镜框、暗部明显更清晰，且全程零模型、零二进制。
+把桌面版「图片转 SVG」**v7.24** 的「先定线后填色」链路封装成 Workshop 后端模块
+（manifest v2 / Workshop API 1.1.0）。模块里的算法取自桌面 v7.26 源码，
+但档位常量按 **v7.24** 固定：160 档主色、48 档细节色、不输出实心线带、不嵌位图。
+
+> **v0.1.6 换引擎（最大的一次变化）**：描摹从旧的 vtracer 路线换成桌面 7.21 起的
+> 自研 `linefirst`（先定线、后填色）。输出全部是闭合的实心纯色块，`data-purpose="3d-print"`，
+> 不嵌位图、不留细线稿层，切片软件能直接分层。实测三张素材：
+> 2000×3586 从 62.4 秒降到 34.8 秒、体积 8.4MB→6.6MB、路径 19480→9513；
+> 边缘/整体误差（MAE）两张更好、一张持平。
+> 代价：首次安装要额外下载 OpenCV 与 SciPy 两个预编译包（合计约 84 MB）。
 
 > **v0.1.4 修复**：宿主在提交任务前要求文件名只能是 ASCII 字母、数字与 `._ -`，
 > 且不能以点或空格结尾；中文名（`微信图片_*.png`、`截图 1.png`、`未标题-1.png`）
@@ -31,8 +37,8 @@
   - v0.1.2 新增画质补丁：backport 桌面 v7.6.1 的高细节描摹参数（case7），高细节插画的发丝、镜框、暗部明显更清晰，零模型、零二进制。
   - 旧版 v0.1.0 / v0.1.1 的标签与资产保持不变。
 
-**当前状态**：Registry 里登记的后端版仍是 v0.1.1（PR #9）；v0.1.2 / v0.1.3 未单独登记。
-v0.1.4 修复了中文文件名导致的任务提交失败，发布后按追加方式登记。
+**当前状态**：Registry 里登记的后端版仍是 v0.1.1（PR #9）。v0.1.6（linefirst 引擎）
+已提交追加登记 PR，等官方合并 + 签名发布后，工坊里才会出现新版本。
 
 ## 结构
 
@@ -44,10 +50,10 @@ scripts/package.mjs     把 JS、CSS、图标全部内联进 ui/index.html
 scripts/verify_parity.py        A/B 逐字节比对 + 放大对比图
 test/                   模块契约测试
 backend/main.py         任务入口：适配宿主任务协议，输出 SVG / PNG / meta
-backend/svg_raster.py   纯 Pillow 的 vtracer SVG 光栅化（PNG 兼容回退）
-backend/img2svg_core/   27 个算法核心 .py，从桌面版 v7.6.0 原样复制
-backend/pylock.toml     PEP 751 依赖锁（4 个官方 wheel，全部真实哈希）
-backend/MODELS.md       说明为何零模型依赖，附 A/B 实测数据
+backend/svg_raster.py   纯 Pillow 的 SVG 光栅化（PNG 兼容回退），按 width/height 出图
+backend/img2svg_core/   50 个算法核心 .py，取自桌面 v7.26 源码（linefirst 档位固定为 v7.24）
+backend/pylock.toml     PEP 751 依赖锁（6 个官方 wheel，全部真实哈希）
+backend/MODELS.md       说明依赖构成与零模型依赖的原因
 THIRD_PARTY_NOTICES.md  第三方组件与许可证来源说明
 ```
 

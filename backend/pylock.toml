@@ -45,3 +45,21 @@ name = "pillow-13.0.0-cp312-cp312-win_amd64.whl"
 url = "https://files.pythonhosted.org/packages/ff/cd/73a79ecdc822076002eb24b5e1e4a530b0bb5310fcb6d239abbec877110b/pillow-13.0.0-cp312-cp312-win_amd64.whl"
 size = 7272166
 hashes = { sha256 = "ff3fe9eb621fbb9db4c4be33ab946f6bac5f98ab50ca8d3260503653656c961b" }
+
+[[packages]]
+name = "opencv-python-headless"
+version = "5.1.0.95"
+[[packages.wheels]]
+name = "opencv_python_headless-5.1.0.95-cp37-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/26/d1/a52c8d8e1cecf86725930170dfba1c7c1f59674ac8f131e96583aa41433d/opencv_python_headless-5.1.0.95-cp37-abi3-win_amd64.whl"
+size = 47789463
+hashes = { sha256 = "2fd11ce2e88feb28869ad5762a31546ce0062e7c55c130c425ccd3918a19e4fa" }
+
+[[packages]]
+name = "scipy"
+version = "1.18.1"
+[[packages.wheels]]
+name = "scipy-1.18.1-cp312-cp312-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/39/e7/979fd14e75008623df31ba70d6bb144700f68feadcea042021c06a05bf82/scipy-1.18.1-cp312-cp312-win_amd64.whl"
+size = 36658278
+hashes = { sha256 = "5e4d44984abc0020154ea81b247adeddcc3ac5527b975ff798bd1ba0adc513c2" }

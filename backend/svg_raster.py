@@ -110,19 +110,33 @@ def render(svg_text: str, max_size: int | None = None) -> Image.Image:
     vb = _VIEWBOX_RE.search(svg_text)
     wm = _WIDTH_RE.search(svg_text)
     hm = _HEIGHT_RE.search(svg_text)
+    # 两套尺寸必须分开看：
+    #   viewBox  = 路径坐标所在的画布（linefirst 用 1600 宽的工作网格）
+    #   width/height = 这张图真正的显示尺寸（通常就是原图像素）
+    # 输出图按显示尺寸走，路径坐标再按比例缩到显示尺寸上，这样 meta 报的
+    # 像素尺寸才和用户的原图一致（否则 683×916 的图会被报成 1600×2146）。
     if vb:
         n = [float(x) for x in re.findall(_NUM, vb.group(1))]
         vb_w, vb_h = n[2], n[3]
-    elif wm and hm:
-        # vtracer's fallback output declares width/height but no viewBox.
-        vb_w, vb_h = float(wm.group(1)), float(hm.group(1))
     else:
-        vb_w = vb_h = 1024.0
-    width, height = int(vb_w), int(vb_h)
+        vb_w = vb_h = 0.0
+    if wm and hm:
+        out_w, out_h = float(wm.group(1)), float(hm.group(1))
+    elif vb_w and vb_h:
+        # vtracer's fallback output declares width/height but no viewBox.
+        out_w, out_h = vb_w, vb_h
+    else:
+        out_w = out_h = 1024.0
+    if not (vb_w and vb_h):
+        vb_w, vb_h = out_w, out_h
+
+    width, height = max(1, int(round(out_w))), max(1, int(round(out_h)))
     scale = 1.0
     if max_size and max(width, height) > max_size:
         scale = max_size / max(width, height)
         width, height = max(1, int(width * scale)), max(1, int(height * scale))
+    sx = width / vb_w
+    sy = height / vb_h
 
     img = Image.new("RGB", (max(1, width), max(1, height)), "white")
     draw = ImageDraw.Draw(img)
@@ -135,7 +149,7 @@ def render(svg_text: str, max_size: int | None = None) -> Image.Image:
         tm = _TRANSLATE_RE.search(attrs)
         dx, dy = (float(tm.group(1)), float(tm.group(2))) if tm else (0.0, 0.0)
         for poly in parse_subpaths(dm.group(1)):
-            pts = [((x + dx) * scale, (y + dy) * scale) for x, y in poly]
+            pts = [((x + dx) * sx, (y + dy) * sy) for x, y in poly]
             draw.polygon(pts, fill=colour, outline=colour)
     return img
 
