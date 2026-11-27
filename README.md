@@ -35,21 +35,28 @@
 
 ## 下载 / 立即使用
 
-不想装 Python、只想双击就能把图片转成 SVG？下载**内置 Python 的本地网页版**（全自动、离线）：
+本仓库是 **Lumina 工坊模块**：装进 Lumina Studio 后，在创意工坊里选图、一键转成
+叠色 3D 打印用的分层色块 SVG，再交给 Lumina 继续处理。
 
-- **直接下载**：[img2svg-webui-portable-v7.6.1.zip（约 31.5 MB）](https://github.com/pyramid865/lumina-img2svg-module/releases/download/v0.1.2/img2svg-webui-portable-v7.6.1.zip)
-- 下载后解压，**双击 `START.bat`** 即可，浏览器会自动打开。无需安装任何东西，全程离线。
-- 所有版本和文件都在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases) → **v0.1.2** 下方的 **Assets** 区域。
+**当前最新版：0.1.8**（linefirst「先定线后填色」引擎，档位对应桌面 v7.24）。
 
-其他下载项：
-- Workshop 模块包（最新版）：`community.img2svg-0.1.8.lumina-workshop`
-  （[Release v0.1.8](https://github.com/pyramid865/lumina-img2svg-module/releases/tag/v0.1.8) 的 Assets 里）。
-  - v0.1.1 修复了交接时 ArrayBuffer 被转移导致二次确认失败的问题，并补齐内联 SDK 的 GPL 声明与许可证正文。
-  - v0.1.2 新增画质补丁：backport 桌面 v7.6.1 的高细节描摹参数（case7），高细节插画的发丝、镜框、暗部明显更清晰，零模型、零二进制。
-  - 旧版 v0.1.0 / v0.1.1 的标签与资产保持不变。
+- 下载模块包：`community.img2svg-0.1.8.lumina-workshop`
+  在 [Release v0.1.8](https://github.com/pyramid865/lumina-img2svg-module/releases/tag/v0.1.8)
+  页面的 **Assets** 区域。
+- 安装方法：Lumina Studio →「创意工坊」→「开发者」→「安装本地模块包」→ 选中上面这个文件。
+- 首次安装会自动下载 OpenCV 与 SciPy 两个依赖包（合计约 84 MB），这一步需要联网；
+  之后每次转换都在本机完成，图片不会上传。
+- 完整版本清单在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases)。
+  旧版本的标签与资产（v0.1.0 ～ v0.1.7）保持原样可下载，但请使用最新版。
 
-**当前状态**：Registry 里登记的后端版仍是 v0.1.1（PR #9）。v0.1.8（linefirst 引擎 + 窄长图内存修复 + 输出可复现）
-已提交追加登记 PR，等官方合并 + 签名发布后，工坊里才会出现新版本。
+> **关于旧的「本地网页版 zip」**：Release v0.1.2 里还有一个
+> `img2svg-webui-portable-v7.6.1.zip`（约 31.5 MB，解压后双击 `START.bat` 在浏览器里用）。
+> 那是 11 月中旬的历史文件，对应桌面 v7.6.1 的老引擎，**不是最新版本，也不再维护**；
+> 新用户请装上面的 0.1.8 模块包。
+
+**当前状态**：线上工坊签名目录里登记的后端版仍是 v0.1.1（最初由 PR #9 登记）。
+v0.1.8（linefirst 引擎 + 窄长图内存修复 + 输出可复现）已在 PR #15 提交追加登记，
+等官方合并 + 签名发布后，工坊里才会出现新版本。
 
 ## 结构
 
@@ -68,7 +75,12 @@ backend/MODELS.md       说明依赖构成与零模型依赖的原因
 THIRD_PARTY_NOTICES.md  第三方组件与许可证来源说明
 ```
 
-## 效果不变（已实测，不是纸面承诺）
+## 历史 A/B 记录（v0.1.2 及更早，仅供留档）
+
+> 以下是 0.1.6 换引擎之前的老实测数据。0.1.6 起描摹已换成桌面 7.24 的
+> `linefirst` 链路（160 档主色 / 48 档细节色），下列「256 色 / 5,912 路径 /
+> 与 v7.6.0 逐字节相同」等结论**只适用于旧版本**，不代表当前 0.1.8。
+> 当前版本的数据见文首各版本说明。
 
 - `backend/img2svg_core/` 与桌面 v7.6.0 的对应文件**逐字节相同**；`core.py`
   的 sha256 两侧一致。已移除桌面版 v7.5.6 起删除的 GPL 引擎、私有源码复制、
@@ -103,7 +115,7 @@ v7.5.7 起默认 2× 超分已改为 `enhance.py` 的保色算法（纯 numpy/Pi
   `author` 一致）。
 
 其余原阻塞项已解决：模型公开 URL 不再需要；`pylock.toml` 已补全为完整的
-最小依赖集（4 个官方 wheel，真实 URL + sha256）；`src/main.ts` 的
+最小依赖集（6 个官方 wheel，真实 URL + sha256）；`src/main.ts` 的
 `handoff.image` / `image.pick` / `backend.waitFor` 字段已按 SDK 1.1.0
 的 `.d.ts` 与官方测试逐字核对修正。
 
