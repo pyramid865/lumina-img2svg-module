@@ -309,6 +309,9 @@ def _fit_palette(lab_w, k, sample=200_000, mask=None):
         idx = np.random.default_rng(7).choice(len(pts), sample, replace=False)
         pts = pts[idx]
     crit = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 40, 1e-4)
+    # cv2.kmeans 自带一套全局 RNG，不受上面的 numpy 种子影响；不钉死它，
+    # 同一张图两次运行会分出略不同的调色板（路径数 4808/4779 都出现过）。
+    cv2.setRNGSeed(7)
     _, _, cen = cv2.kmeans(pts, k, None, crit, 2, cv2.KMEANS_PP_CENTERS)
     return cen.astype(np.float32)
 
@@ -730,6 +733,7 @@ def colored_line_svg(rgb: np.ndarray, mask: np.ndarray, stroke_width: float,
     k = int(max(1, min(n_groups, len(chains))))
     if len(chains) > k:
         crit = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 12, 1.0)
+        cv2.setRNGSeed(7)  # 同上，线稿层也保持可复现（默认关闭）
         _, labels, centers = cv2.kmeans(cols, k, None, crit, 2, cv2.KMEANS_PP_CENTERS)
         labels = labels.reshape(-1)
         centers = centers.astype(np.float32)

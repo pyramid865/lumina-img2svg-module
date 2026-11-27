@@ -194,3 +194,15 @@ class WorkCanvasTests(unittest.TestCase):
         out = self.lf._force_root_px(svg, 16, 1600)
         self.assertIn('width="16"', out)
         self.assertIn('height="1600"', out)
+
+    def test_palette_is_reproducible(self) -> None:
+        """cv2.kmeans 自带 RNG，必须显式钉死，否则同图两次结果不同。"""
+        import numpy as np  # noqa: PLC0415
+
+        lab = np.random.default_rng(1).random((1200, 3)).astype(np.float32)
+        self.lf.cv2.setRNGSeed(111)
+        first = self.lf._fit_palette(lab, 8)
+        self.lf.cv2.setRNGSeed(999)
+        second = self.lf._fit_palette(lab, 8)
+        self.assertIsNotNone(first)
+        self.assertTrue(np.array_equal(first, second))
