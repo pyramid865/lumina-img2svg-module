@@ -11,6 +11,13 @@
 > 边缘/整体误差（MAE）两张更好、一张持平。
 > 代价：首次安装要额外下载 OpenCV 与 SciPy 两个预编译包（合计约 84 MB）。
 
+> **v0.1.7 修复（复核阻断项）**：旧逻辑只把工作宽度固定到 1600，窄长图（如 16×1600）
+> 会被等比放大到 1600×160000（2.56 亿像素，RGB 原始数组就 768 MB）。本版同时限制工作网格的
+> 总像素与高度：`MAX_WORK_PIXELS=5_000_000`（工作网格总像素上限，调大更精细但更吃内存，
+> 调小更省内存但细节少；5M 与桌面入口一致，正常图不受影响）、`MAX_WORK_H=4096`
+> （工作网格高度上限，调大允许更长的图但内存涨，调小更安全但极窄长图横向采样变少；
+> 4096 覆盖所有实测正常图，同时把窄长图挡在安全范围）。SVG 显示尺寸仍等于原图。
+
 > **v0.1.4 修复**：宿主在提交任务前要求文件名只能是 ASCII 字母、数字与 `._ -`，
 > 且不能以点或空格结尾；中文名（`微信图片_*.png`、`截图 1.png`、`未标题-1.png`）
 > 会被整单驳回，界面显示「描摹失败：Workshop backend task input is invalid.」，
@@ -31,13 +38,13 @@
 - 所有版本和文件都在 [Releases 页面](https://github.com/pyramid865/lumina-img2svg-module/releases) → **v0.1.2** 下方的 **Assets** 区域。
 
 其他下载项：
-- Workshop 模块包（最新补丁版）：`community.img2svg-0.1.2.lumina-workshop`
-  （[Release v0.1.2](https://github.com/pyramid865/lumina-img2svg-module/releases/tag/v0.1.2) 的 Assets 里）。
+- Workshop 模块包（最新版）：`community.img2svg-0.1.7.lumina-workshop`
+  （[Release v0.1.7](https://github.com/pyramid865/lumina-img2svg-module/releases/tag/v0.1.7) 的 Assets 里）。
   - v0.1.1 修复了交接时 ArrayBuffer 被转移导致二次确认失败的问题，并补齐内联 SDK 的 GPL 声明与许可证正文。
   - v0.1.2 新增画质补丁：backport 桌面 v7.6.1 的高细节描摹参数（case7），高细节插画的发丝、镜框、暗部明显更清晰，零模型、零二进制。
   - 旧版 v0.1.0 / v0.1.1 的标签与资产保持不变。
 
-**当前状态**：Registry 里登记的后端版仍是 v0.1.1（PR #9）。v0.1.6（linefirst 引擎）
+**当前状态**：Registry 里登记的后端版仍是 v0.1.1（PR #9）。v0.1.7（linefirst 引擎 + 窄长图内存修复）
 已提交追加登记 PR，等官方合并 + 签名发布后，工坊里才会出现新版本。
 
 ## 结构

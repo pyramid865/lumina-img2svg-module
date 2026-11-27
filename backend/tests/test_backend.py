@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import json
 import re
+import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 BACKEND = ROOT / "backend"
@@ -131,3 +134,63 @@ class ManifestEncodingTests(unittest.TestCase):
         raw = (ROOT / "manifest.json").read_bytes()
         self.assertNotIn(b"\r\n", raw, "manifest.json 必须是 LF 行尾")
         self.assertEqual(raw.count(b"\n"), raw.count(b"\n"))
+
+
+class WorkCanvasTests(unittest.TestCase):
+    """v0.1.7：窄长图不能把工作网格放大到吃掉几 GB 内存。"""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        sys.path.insert(0, str(BACKEND))
+        sys.path.insert(0, str(BACKEND / "img2svg_core"))
+        import linefirst  # noqa: PLC0415
+        cls.lf = linefirst
+
+    def test_normal_images_keep_the_old_work_grid(self) -> None:
+        """正常图仍按宽度 1600 等比换算，输出/画质不变。"""
+        cases = [
+            (683, 916, (1600, 2146)),
+            (1254, 1881, (1600, 2400)),
+            (2000, 3586, (1600, 2869)),
+        ]
+        for ow, oh, expected in cases:
+            self.assertEqual(self.lf.work_canvas_size(ow, oh), expected)
+
+    def test_extreme_aspect_ratio_is_capped(self) -> None:
+        """16×1600 若按旧逻辑会变成 1600×160000（2.56 亿像素）。"""
+        w, h = self.lf.work_canvas_size(16, 1600)
+        self.assertLessEqual(w, self.lf.WORK_W)
+        self.assertLessEqual(h, self.lf.MAX_WORK_H)
+        self.assertLessEqual(w * h, self.lf.MAX_WORK_PIXELS)
+        # 等比：宽高比偏差不超过 5%
+        self.assertAlmostEqual(w / float(h), 16 / 1600.0, delta=0.0005)
+
+    def test_trace_intercepts_before_huge_allocation(self) -> None:
+        """真实 trace 入口在调用 cv2.resize 前就已被收口。"""
+        from PIL import Image  # noqa: PLC0415
+
+        seen: dict[str, tuple[int, int]] = {}
+
+        def fake_resize(_array, size, *_args, **_kwargs):
+            seen["size"] = tuple(size)
+            raise RuntimeError("stop-before-allocation")
+
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / "narrow.png"
+            Image.new("RGB", (16, 1600), (180, 30, 30)).save(src)
+            with mock.patch.object(self.lf.cv2, "resize", side_effect=fake_resize):
+                with self.assertRaises(RuntimeError):
+                    self.lf.trace(str(src), str(Path(td) / "out.svg"))
+
+        self.assertIn("size", seen)
+        w, h = seen["size"]
+        self.assertLessEqual(w, self.lf.WORK_W)
+        self.assertLessEqual(h, self.lf.MAX_WORK_H)
+        self.assertLessEqual(w * h, self.lf.MAX_WORK_PIXELS)
+
+    def test_root_size_is_pinned_to_source_pixels(self) -> None:
+        """工作网格取整不能让 SVG 显示尺寸变成 1598 这类偏差。"""
+        svg = '<svg width="41" height="1598" viewBox="0 0 41 4096"></svg>'
+        out = self.lf._force_root_px(svg, 16, 1600)
+        self.assertIn('width="16"', out)
+        self.assertIn('height="1600"', out)

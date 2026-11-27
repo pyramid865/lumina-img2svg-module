@@ -220,8 +220,46 @@ SOLID_BAND_DENSE_K = 5
 # 注意：原图比它窄时会被放大到 1600。放大本身能让边界更精细，但**必须用
 # 平滑插值**（LANCZOS），用 INTER_AREA 放大（它只适合缩小）会出块状锯齿。
 WORK_W = 1600
+# 工作网格的另外两道闸门。v0.1.6 只把宽度固定到 1600，窄长图（如 16×1600）
+# 会被等比放大到 1600×160000——2.56 亿像素，RGB 原始数组就 768 MB，后续中间
+# 数组继续放大。这里同时限制总像素与高度；普通图片（宽 1600、高 ≤2869）不受影响，
+# 输出 SVG 的 width/height 仍是原图尺寸，只有内部工作网格会按需要收紧。
+MAX_WORK_PIXELS = 5_000_000
+MAX_WORK_H = 4096
 
 _FILL_HEX = re.compile(r'fill="(#[0-9a-fA-F]{6})"')
+
+
+def work_canvas_size(ow: int, oh: int) -> tuple[int, int]:
+    """按原图宽高比算工作网格，同时满足宽/高/总像素三道闸门。
+
+    普通图仍保持旧行为：宽度放大/缩小到 WORK_W，高度等比变化。
+    窄长图会被高度上限或总像素上限收紧，避免 cv2.resize 申请超大数组。
+    返回的只是内部工作网格；SVG 的 width/height 仍由原图尺寸决定。
+    """
+    ow, oh = max(1, int(ow)), max(1, int(oh))
+    scale = min(
+        WORK_W / float(ow),
+        MAX_WORK_H / float(oh),
+        (MAX_WORK_PIXELS / float(ow * oh)) ** 0.5,
+    )
+    w = max(1, min(WORK_W, int(round(ow * scale))))
+    h = max(1, min(MAX_WORK_H, int(round(oh * scale))))
+    # 四舍五入后仍可能略微越线，按总像素再收一次高度。
+    if w * h > MAX_WORK_PIXELS:
+        h = max(1, int(MAX_WORK_PIXELS // w))
+    return w, h
+
+
+def _force_root_px(svg: str, ow: int, oh: int) -> str:
+    """把 SVG 显示尺寸钉回原图宽高，避免工作网格取整带来 1~2px 偏差。"""
+    m = re.search(r'<svg\b[^>]*>', svg)
+    if not m:
+        return svg
+    tag = m.group(0)
+    tag = re.sub(r'\bwidth="[^"]*"', 'width="%d"' % ow, tag, count=1)
+    tag = re.sub(r'\bheight="[^"]*"', 'height="%d"' % oh, tag, count=1)
+    return svg[:m.start()] + tag + svg[m.end():]
 
 
 def _load_rgb(src):
@@ -889,18 +927,14 @@ def trace(src: str, dst: str, progress=None, colors: int = 0) -> dict:
     step("读入图片…")
     rgb = _load_rgb(src)
     oh, ow = rgb.shape[:2]
-    sc = WORK_W / float(ow)
-    if ow > WORK_W:
-        # 缩小：INTER_AREA 抗锯齿最好（相当于把多个像素平均掉）
-        work = cv2.resize(rgb, (WORK_W, max(1, int(round(oh * sc)))),
-                          interpolation=cv2.INTER_AREA)
-    elif ow < WORK_W:
-        # 放大：INTER_AREA 在放大时会出块状阶梯，必须换平滑插值
-        work = cv2.resize(rgb, (WORK_W, max(1, int(round(oh * sc)))),
-                          interpolation=cv2.INTER_LANCZOS4)
-    else:
+    w, h = work_canvas_size(ow, oh)
+    if (w, h) == (ow, oh):
         work = rgb
-    h, w = work.shape[:2]
+    else:
+        # 缩小用 INTER_AREA（多像素平均，抗锯齿最好）；放大用 LANCZOS4，
+        # INTER_AREA 放大会出块状阶梯。
+        interp = cv2.INTER_AREA if (w < ow or h < oh) else cv2.INTER_LANCZOS4
+        work = cv2.resize(rgb, (w, h), interpolation=interp)
 
     # ---------- 0) 自动双模式分流（v7.24.0 打印模式默认关闭嵌底图）----------
     # 3D 打印叠色必须全程纯矢量色块：<image> 位图切片软件读不了，打印会丢色，
@@ -965,6 +999,7 @@ def trace(src: str, dst: str, progress=None, colors: int = 0) -> dict:
     # 根节点重写：viewBox = 工作网格，显示尺寸 = 原图
     _title = "3D-print color layers" if not EMIT_LINE_LAYER else "Line-first flat artwork"
     svg = core._set_root(svg, w, h, ow / float(w), _title)
+    svg = _force_root_px(svg, ow, oh)
     _purpose = "3d-print" if not EMIT_LINE_LAYER else "view"
     svg = svg.replace("<svg ", '<svg data-engine="linefirst" data-purpose="%s" ' % _purpose, 1)
 
