@@ -1,23 +1,14 @@
-# 统一换行：仓库内文本一律 LF。
+# 只钉死必须用 LF 的文件，不做全局自动转换。
 #
 # 教训（v0.1.6）：manifest.json 带 CRLF 时，宿主会判「package is invalid」，
-# 但只给一句笼统文案，排查很久。Windows 上 actions/checkout 默认可能按
+# 但只给一句笼统文案，排查很久。Windows 上 actions/checkout 可能按
 # core.autocrlf 把 LF 转成 CRLF，导致「本地测试通过、CI 必挂」：
 # ManifestEncodingTests 断言 manifest.json 不含 \r\n，检出后就被改坏。
 #
-# 强制所有文本用 LF，检出与提交都不再改写行尾。
-* text=auto eol=lf
+# 注意：**不要**写 `* text=auto eol=lf`。仓库里已有大量 CRLF 文件，
+# 全局规则会让它们在 CI 里被当成「已修改」，`git diff --exit-code`
+# 那一步直接失败（2026-11-28 踩过）。
 
-# 明确钉死清单与构建脚本，避免被任何自动转换碰到。
 manifest.json           text eol=lf
 package.json            text eol=lf
 pnpm-lock.yaml          text eol=lf
-*.py                    text eol=lf
-*.yml                   text eol=lf
-*.yaml                  text eol=lf
-*.toml                  text eol=lf
-*.md                    text eol=lf
-*.html                  text eol=lf
-*.css                   text eol=lf
-*.js                    text eol=lf
-*.ts                    text eol=lf
