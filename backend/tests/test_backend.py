@@ -206,3 +206,86 @@ class WorkCanvasTests(unittest.TestCase):
         second = self.lf._fit_palette(lab, 8)
         self.assertIsNotNone(first)
         self.assertTrue(np.array_equal(first, second))
+
+
+class SvgRasterPaintTests(unittest.TestCase):
+    """预览渲染器必须理解 linefirst 的输出结构。
+
+    linefirst 把打印用的深色带写成
+    ``<g fill="#2a2118" fill-rule="evenodd"><path d="…"/></g>``：
+    ``fill`` 与 ``fill-rule`` 都在分组上，``path`` 自身没有任何绘制属性。
+    只扫描 ``<path>`` 的渲染器会把这一层整条丢掉——预览图因此没有勾边，
+    和浏览器打开的真实效果对不上（2026-11-28 实测：4577 条 path 里恰好
+    这 1 条没有 fill，预览缺少全部轮廓线）。
+    """
+
+    def setUp(self) -> None:
+        sys.path.insert(0, str(BACKEND))
+        from backend import svg_raster  # noqa: PLC0415
+
+        self.sr = svg_raster
+
+    def test_group_fill_is_inherited_by_path(self) -> None:
+        svg = (
+            '<svg width="40" height="40" viewBox="0 0 40 40">'
+            '<g fill="#2a2118"><path d="M0 0 L20 0 L20 20 L0 20 Z"/></g>'
+            "</svg>"
+        )
+        img = self.sr.render(svg)
+        self.assertEqual(img.getpixel((10, 10)), (0x2A, 0x21, 0x18))
+
+    def test_path_fill_overrides_group(self) -> None:
+        svg = (
+            '<svg width="40" height="40" viewBox="0 0 40 40">'
+            '<g fill="#000000"><path fill="#ff0000" d="M0 0 L20 0 L20 20 L0 20 Z"/></g>'
+            "</svg>"
+        )
+        img = self.sr.render(svg)
+        self.assertEqual(img.getpixel((10, 10)), (255, 0, 0))
+
+    def test_nested_groups_inherit_nearest(self) -> None:
+        svg = (
+            '<svg width="40" height="40" viewBox="0 0 40 40">'
+            '<g fill="#000000"><g fill="#00ff00">'
+            '<path d="M0 0 L20 0 L20 20 L0 20 Z"/></g></g>'
+            "</svg>"
+        )
+        img = self.sr.render(svg)
+        self.assertEqual(img.getpixel((10, 10)), (0, 255, 0))
+
+    def test_evenodd_punches_hole(self) -> None:
+        """evenodd 的内圈必须挖空，否则深色带会把五官糊成黑块。"""
+        svg = (
+            '<svg width="40" height="40" viewBox="0 0 40 40">'
+            '<g fill="#2a2118" fill-rule="evenodd">'
+            '<path d="M0 0 L40 0 L40 40 L0 40 Z M10 10 L30 10 L30 30 L10 30 Z"/>'
+            "</g></svg>"
+        )
+        img = self.sr.render(svg)
+        self.assertEqual(img.getpixel((5, 5)), (0x2A, 0x21, 0x18))    # ring
+        self.assertEqual(img.getpixel((20, 20)), (255, 255, 255))      # hole
+
+    def test_nested_rings_alternate(self) -> None:
+        """三层嵌套：最外层填、中间挖空、最内层再填。"""
+        svg = (
+            '<svg width="40" height="40" viewBox="0 0 40 40">'
+            '<g fill="#2a2118" fill-rule="evenodd"><path d="'
+            "M0 0 L40 0 L40 40 L0 40 Z "
+            "M5 5 L35 5 L35 35 L5 35 Z "
+            'M15 15 L25 15 L25 25 L15 25 Z"/></g></svg>'
+        )
+        img = self.sr.render(svg)
+        self.assertEqual(img.getpixel((2, 2)), (0x2A, 0x21, 0x18))     # 外环
+        self.assertEqual(img.getpixel((10, 10)), (255, 255, 255))      # 中环挖空
+        self.assertEqual(img.getpixel((20, 20)), (0x2A, 0x21, 0x18))   # 最内
+
+    def test_group_transform_is_inherited(self) -> None:
+        svg = (
+            '<svg width="40" height="40" viewBox="0 0 40 40">'
+            '<g fill="#0000ff" transform="translate(10,10)">'
+            '<path d="M0 0 L10 0 L10 10 L0 10 Z"/></g>'
+            "</svg>"
+        )
+        img = self.sr.render(svg)
+        self.assertEqual(img.getpixel((15, 15)), (0, 0, 255))
+        self.assertEqual(img.getpixel((5, 5)), (255, 255, 255))
