@@ -32,6 +32,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install backend test dependencies
+        # svg_raster 的预览渲染依赖 Pillow；之前没装，导致
+        # SvgRasterPaintTests 全部 ModuleNotFoundError: No module named 'PIL'
+        run: python -m pip install --upgrade pip pillow
+
       - name: Install the frozen dependency graph
         run: pnpm install --frozen-lockfile
 
