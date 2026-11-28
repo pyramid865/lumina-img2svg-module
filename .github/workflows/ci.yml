@@ -44,6 +44,9 @@ jobs:
         run: pnpm test
 
       - name: Run backend unit tests
+        env:
+          # 不写 __pycache__：下一步的「backend 只含文本」检查会把 .pyc 判成二进制
+          PYTHONDONTWRITEBYTECODE: "1"
         run: python -m unittest discover -s backend/tests -v
 
       - name: Verify backend contains only text sources
@@ -53,6 +56,8 @@ jobs:
           from pathlib import Path
           allowed = {".py", ".toml", ".json", ".txt", ".md", ".cfg", ".ini", ".csv"}
           for p in Path("backend").rglob("*"):
+              if "__pycache__" in p.parts:
+                  continue
               if p.is_file():
                   assert p.suffix in allowed, f"binary or disallowed file: {p}"
                   assert not p.name.startswith("."), f"hidden file: {p}"
