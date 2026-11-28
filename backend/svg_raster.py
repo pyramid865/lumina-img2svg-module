@@ -19,7 +19,7 @@ import math
 import re
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 # Long-edge cap for the preview PNG.  The SVG keeps its own dimensions; only
 # this raster preview is bounded, so an oversized artwork cannot allocate
@@ -66,14 +66,18 @@ def _attr(attrs: str, name: str) -> str | None:
     return match.group(2)
 
 
-def _path_attrs(attrs: str) -> tuple[str | None, str | None, str | None]:
-    """Read the d, fill and transform attributes in one pass.
+def _path_attrs(attrs: str) -> tuple[str | None, str | None, str | None, str | None]:
+    """Read d, fill, transform and fill-rule in one pass.
 
-    Rendering used to run three separate regex searches per path element; a
-    single attribute scan keeps the same precedence (the first occurrence of
-    each name wins) with one traversal of the tag text.
+    Rendering used to run separate regex searches per path element; a single
+    attribute scan keeps the same precedence (the first occurrence of each name
+    wins) with one traversal of the tag text.
+
+    ``fill-rule`` is read here because our tracer emits its printable ink band
+    as ``<g fill=… fill-rule="evenodd"><path …/></g>``: both values live on the
+    group, so a path-only scan loses the band entirely.
     """
-    data = fill = transform = None
+    data = fill = transform = rule = None
     for match in _ATTR_PAIR_RE.finditer(attrs):
         name = match.group(1).lower()
         value = match.group(2) if match.group(2) is not None else match.group(3)
@@ -83,7 +87,9 @@ def _path_attrs(attrs: str) -> tuple[str | None, str | None, str | None]:
             fill = value
         elif name == "transform":
             transform = value
-    return data, fill, transform
+        elif name == "fill-rule":
+            rule = value
+    return data, fill, transform, rule
 
 
 def _length(value: str | None) -> float | None:
@@ -356,6 +362,77 @@ def parse_subpaths(d: str) -> list[list[tuple[float, float]]]:
     return polys
 
 
+_TAG_RE = re.compile(
+    r"<(?P<close>/?)g\b(?P<gattrs>[^>]*?)(?P<gself>/?)>"
+    r"|<path\b(?P<pathattrs>[^>]*?)(?P<pself>/?)>",
+    re.I)
+
+
+def _iter_paintables(svg_text: str):
+    """Yield (path_attrs, inherited_groups) in document order.
+
+    Our tracer wraps the printable ink band in ``<g fill=… fill-rule="evenodd">``
+    and leaves the inner ``<path>`` without any paint attributes.  Scanning only
+    ``<path>`` tags therefore dropped that band from every preview PNG, which is
+    why the preview showed no outlines at all.  This walks ``<g>`` / ``</g>``
+    too and hands each path the stack of enclosing groups.
+    """
+    stack: list[dict[str, str | None]] = []
+    for match in _TAG_RE.finditer(svg_text):
+        group_attrs = match.group("gattrs")
+        if group_attrs is not None:                            # a <g …> tag
+            if match.group("close") == "/":
+                if stack:
+                    stack.pop()
+            elif not match.group("gself"):                     # not self-closing
+                _d, fill, transform, rule = _path_attrs(group_attrs)
+                stack.append({"fill": fill, "transform": transform,
+                              "fill-rule": rule})
+            continue
+        yield match.group("pathattrs") or "", stack
+
+
+def _resolve_paint(attrs: str, stack):
+    """Path attributes win; anything missing is inherited from the nearest group."""
+    path_data, fill, transform, rule = _path_attrs(attrs)
+    for group in reversed(stack):
+        if fill is None and group.get("fill"):
+            fill = group["fill"]
+        if transform is None and group.get("transform"):
+            transform = group["transform"]
+        if rule is None and group.get("fill-rule"):
+            rule = group["fill-rule"]
+        if fill is not None and transform is not None and rule is not None:
+            break
+    return path_data, fill, transform, rule
+
+
+def _fill_evenodd(img: Image.Image, polys, colour) -> None:
+    """Fill a multi-subpath polygon using the even-odd rule.
+
+    PIL's ``polygon`` fills every subpath independently, so a path that punches
+    a hole (our ink band outlines the eyes/mouth as inner rings) would come out
+    as a solid blob.  XOR-accumulating each ring in a 1-bit mask reproduces what
+    the browser shows, and stays inside the path's own bbox so the cost does not
+    scale with canvas size.
+    """
+    xs = [x for poly in polys for x, _ in poly]
+    ys = [y for poly in polys for _, y in poly]
+    x0 = max(0, int(math.floor(min(xs))) - 1)
+    y0 = max(0, int(math.floor(min(ys))) - 1)
+    x1 = min(img.width, int(math.ceil(max(xs))) + 2)
+    y1 = min(img.height, int(math.ceil(max(ys))) + 2)
+    w, h = x1 - x0, y1 - y0
+    if w <= 0 or h <= 0:
+        return
+    acc = Image.new("1", (w, h), 0)
+    for poly in polys:
+        ring = Image.new("1", (w, h), 0)
+        ImageDraw.Draw(ring).polygon([(x - x0, y - y0) for x, y in poly], fill=1)
+        acc = ImageChops.logical_xor(acc, ring)
+    img.paste(Image.new("RGB", (w, h), colour), (x0, y0), acc)
+
+
 def render(svg_text: str, max_size: int | None = None) -> Image.Image:
     """Render SVG source text to an RGB PIL image."""
     out_w, out_h, vb_w, vb_h = _svg_size(svg_text)
@@ -371,22 +448,25 @@ def render(svg_text: str, max_size: int | None = None) -> Image.Image:
 
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
-    for tag in _PATH_RE.finditer(svg_text):
-        path_data, fill, transform = _path_attrs(tag.group(1))
+    for attrs, inherited in _iter_paintables(svg_text):
+        path_data, fill, transform, rule = _resolve_paint(attrs, inherited)
         if not path_data or not fill:
             continue
         colour = _hex_to_rgb(fill)
         move = _TRANSLATE_RE.search(transform or "")
         dx = float(move.group(1)) if move else 0.0
         dy = float(move.group(2) or 0.0) if move else 0.0
-        if dx or dy:
-            ox, oy = dx * sx, dy * sy
-            for poly in parse_subpaths(path_data):
-                points = [(x * sx + ox, y * sy + oy) for x, y in poly]
-                draw.polygon(points, fill=colour, outline=colour)
+        ox, oy = (dx * sx, dy * sy) if (dx or dy) else (0.0, 0.0)
+        polys = [
+            [(x * sx + ox, y * sy + oy) for x, y in poly]
+            for poly in parse_subpaths(path_data)
+        ]
+        if not polys:
+            continue
+        if rule == "evenodd":
+            _fill_evenodd(img, polys, colour)
         else:
-            for poly in parse_subpaths(path_data):
-                points = [(x * sx, y * sy) for x, y in poly]
+            for points in polys:
                 draw.polygon(points, fill=colour, outline=colour)
     return img
 
