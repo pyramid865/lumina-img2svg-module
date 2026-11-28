@@ -1,14 +1,14 @@
-# 只钉死必须用 LF 的文件，不做全局自动转换。
+﻿# 只钉死 manifest.json：这是唯一「行尾错了会出事」的文件。
 #
 # 教训（v0.1.6）：manifest.json 带 CRLF 时，宿主会判「package is invalid」，
-# 但只给一句笼统文案，排查很久。Windows 上 actions/checkout 可能按
-# core.autocrlf 把 LF 转成 CRLF，导致「本地测试通过、CI 必挂」：
-# ManifestEncodingTests 断言 manifest.json 不含 \r\n，检出后就被改坏。
+# 但只给一句笼统文案，排查很久。ManifestEncodingTests 因此断言它不含 \r\n。
+# Windows 上 actions/checkout 可能按 core.autocrlf 把 LF 转成 CRLF，
+# 造成「本地通过、CI 必挂」，所以这里显式声明。
 #
-# 注意：**不要**写 `* text=auto eol=lf`。仓库里已有大量 CRLF 文件，
-# 全局规则会让它们在 CI 里被当成「已修改」，`git diff --exit-code`
-# 那一步直接失败（2026-11-28 踩过）。
-
+# 注意两条都别写：
+#   * text=auto eol=lf   —— 仓库里大量文件是 CRLF，全局规则会让它们
+#                            在 CI 的 `git diff --exit-code` 里全变成「已修改」
+#   package.json / pnpm-lock.yaml eol=lf
+#                        —— 这两个在仓库里本来就是 CRLF（2026-11-28 实测），
+#                            声明 LF 反而让检出时被转换，同样触发 diff 失败
 manifest.json           text eol=lf
-package.json            text eol=lf
-pnpm-lock.yaml          text eol=lf
