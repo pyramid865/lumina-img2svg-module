@@ -139,11 +139,17 @@ class ManifestEncodingTests(unittest.TestCase):
 class WorkCanvasTests(unittest.TestCase):
     """v0.1.7：窄长图不能把工作网格放大到吃掉几 GB 内存。"""
 
+    # linefirst 依赖 cv2/numpy/scipy；CI 只装 Pillow（预览渲染用），
+    # 缺少这些重型依赖时跳过而不是 ERROR——否则整个测试任务永远红灯，
+    # 真正该看的失败会被淹没。
     @classmethod
     def setUpClass(cls) -> None:
         sys.path.insert(0, str(BACKEND))
         sys.path.insert(0, str(BACKEND / "img2svg_core"))
-        import linefirst  # noqa: PLC0415
+        try:
+            import linefirst  # noqa: PLC0415
+        except ImportError as exc:  # pragma: no cover - CI 路径
+            raise unittest.SkipTest(f"linefirst 依赖未安装，跳过工作网格测试: {exc}")
         cls.lf = linefirst
 
     def test_normal_images_keep_the_old_work_grid(self) -> None:
